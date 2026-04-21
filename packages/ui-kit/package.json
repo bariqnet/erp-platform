@@ -1,0 +1,34 @@
+{
+  "name": "@erp/ui-kit",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "RTL-aware shadcn/ui components copied into the repo. Phase 1 ships the baseline kit.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf dist .turbo",
+    "dev": "tsc -b --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src test",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@erp/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@erp/config": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
