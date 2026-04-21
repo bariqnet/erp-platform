@@ -1,0 +1,19 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/config" },
+    { "path": "packages/core" },
+    { "path": "packages/metadata" },
+    { "path": "packages/kernel-runtime" },
+    { "path": "packages/change-set" },
+    { "path": "packages/db" },
+    { "path": "packages/events" },
+    { "path": "packages/telemetry" },
+    { "path": "packages/i18n" },
+    { "path": "packages/ui-kit" },
+    { "path": "apps/api" },
+    { "path": "apps/kernel" },
+    { "path": "apps/worker" },
+    { "path": "apps/console" }
+  ]
+}

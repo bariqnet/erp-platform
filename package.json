@@ -1,0 +1,50 @@
+{
+  "name": "erp-platform",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Metadata-driven, multi-tenant ERP platform for the MENA market (Phase 1).",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bariqnet/erp-platform.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bariqnet/erp-platform/issues"
+  },
+  "homepage": "https://github.com/bariqnet/erp-platform#readme",
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20.18 <21",
+    "pnpm": ">=9.15 <10"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "clean": "turbo run clean && rimraf node_modules/.cache .turbo",
+    "dev": "turbo run dev",
+    "format": "prettier --write \"**/*.{ts,tsx,js,cjs,mjs,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,cjs,mjs,json,md,yml,yaml}\"",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint -- --fix",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "typecheck": "turbo run typecheck",
+    "verify": "tsx scripts/verify.ts",
+    "verify:fast": "tsx scripts/verify.ts --skip-build"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
+    "eslint-plugin-import": "catalog:",
+    "prettier": "catalog:",
+    "rimraf": "6.0.1",
+    "ts-morph": "25.0.1",
+    "tsx": "catalog:",
+    "turbo": "2.5.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
