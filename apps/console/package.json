@@ -1,0 +1,32 @@
+{
+  "name": "@erp/console",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Next.js admin console — RTL-first, Arabic + English, App Router only.",
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "clean": "rimraf .next .turbo",
+    "dev": "next dev --port 3000",
+    "lint": "eslint app",
+    "start": "next start --port 3000",
+    "test": "echo 'apps/console has no unit tests in TASK-01; e2e arrives in TASK-12'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@erp/core": "workspace:*",
+    "@erp/i18n": "workspace:*",
+    "@erp/ui-kit": "workspace:*",
+    "next": "14.2.25",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@erp/config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "typescript": "catalog:"
+  }
+}
