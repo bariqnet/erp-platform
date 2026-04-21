@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Turbo / tool caches
+.turbo/
+.eslintcache
+
+# Test outputs
+coverage/
+playwright-report/
+test-results/
+.vitest-cache/
+
+# Environment — never commit real secrets
+.env
+.env.local
+.env.*.local
+
+# IDE / OS noise
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/settings.json.example
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+*.pid
+*.seed

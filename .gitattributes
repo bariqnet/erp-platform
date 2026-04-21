@@ -1,0 +1,20 @@
+* text=auto eol=lf
+
+# Binary files — never diff or merge
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+
+# Generated — keep out of raw diff noise
+pnpm-lock.yaml linguist-generated=true
