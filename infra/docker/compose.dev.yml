@@ -1,0 +1,88 @@
+# Local development stack for the ERP Platform.
+#
+# Start:     docker compose -f infra/docker/compose.dev.yml up -d --wait
+# Stop:      docker compose -f infra/docker/compose.dev.yml down
+# Reset:     docker compose -f infra/docker/compose.dev.yml down -v
+#
+# All services expose only localhost ports; cross-host access is not a goal
+# for this file. Named volumes preserve state across restarts. Run with
+# `-v` in `down` to drop them.
+#
+# Image pins follow CLAUDE.md §2: Postgres 16, Redis 7, OpenSearch 2. Renovate
+# keeps patch versions current; major/minor bumps are manual per §15.
+
+name: erp-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    shm_size: 256mb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-erp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-erp}
+      POSTGRES_DB: ${POSTGRES_DB:-erp_dev}
+      # UTC at rest (CLAUDE.md §7 non-negotiable #9). Display converts.
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-erp} -d $${POSTGRES_DB:-erp_dev}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 2s
+
+  opensearch:
+    image: opensearchproject/opensearch:2.18.0
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      # Security plugin off for local dev only — never in production.
+      DISABLE_SECURITY_PLUGIN: "true"
+      # Heap sized for laptop-class dev; adjust in .env if you hit OOM.
+      OPENSEARCH_JAVA_OPTS: ${OPENSEARCH_JAVA_OPTS:--Xms512m -Xmx512m}
+      bootstrap.memory_lock: "true"
+    ports:
+      - "${OPENSEARCH_PORT:-9200}:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+
+volumes:
+  postgres_data:
+    name: erp-dev-postgres-data
+  redis_data:
+    name: erp-dev-redis-data
+  opensearch_data:
+    name: erp-dev-opensearch-data
