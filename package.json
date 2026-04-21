@@ -42,6 +42,7 @@
     "eslint-plugin-import": "catalog:",
     "prettier": "catalog:",
     "rimraf": "6.0.1",
+    "tinyglobby": "0.2.10",
     "ts-morph": "25.0.1",
     "tsx": "catalog:",
     "turbo": "2.5.0",
