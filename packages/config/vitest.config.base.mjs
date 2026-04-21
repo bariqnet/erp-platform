@@ -1,11 +1,19 @@
-import { defineConfig } from "vitest/config";
-
 // Shared Vitest base configuration.
 //
-// Consumers wire this up by calling `mergeConfig(baseConfig, { ... })` in their
-// local vitest.config.ts, or by importing the defaults directly. Defaults are
-// deliberately conservative: node environment, strict globals off (import from
-// "vitest"), no watch in CI, coverage via v8 opt-in per package.
+// Consumers wire this up by importing the defaults directly:
+//   import baseConfig from "@erp/config/vitest.base";
+//   export default baseConfig;
+//
+// Or by merging with their own options:
+//   import { mergeConfig } from "vitest/config";
+//   import baseConfig from "@erp/config/vitest.base";
+//   export default mergeConfig(baseConfig, { ... });
+//
+// This file is `.mjs` (not `.ts`) so Node ESM can load it directly across
+// package boundaries — Vitest's config loader does not run a TS transform
+// when resolving cross-package imports.
+
+import { defineConfig } from "vitest/config";
 
 export const baseConfig = defineConfig({
   test: {

@@ -11,3 +11,7 @@ pnpm-lock.yaml
 *.min.js
 *.min.css
 docs/api
+
+# Verbatim files — formatting must not drift from the source content.
+CLAUDE.md
+docs/rfc/ERP-RFC-001.md

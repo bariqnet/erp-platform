@@ -10,14 +10,14 @@
     "tsconfig.package.json",
     "eslintrc.cjs",
     "prettierrc.cjs",
-    "vitest.config.base.ts"
+    "vitest.config.base.mjs"
   ],
   "exports": {
     "./eslintrc": "./eslintrc.cjs",
     "./prettierrc": "./prettierrc.cjs",
     "./tsconfig.base.json": "./tsconfig.base.json",
     "./tsconfig.package.json": "./tsconfig.package.json",
-    "./vitest.base": "./vitest.config.base.ts"
+    "./vitest.base": "./vitest.config.base.mjs"
   },
   "scripts": {
     "build": "echo 'config is JSON + CJS — nothing to build'",

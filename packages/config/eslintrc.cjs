@@ -82,15 +82,7 @@ module.exports = {
     "import/order": [
       "error",
       {
-        groups: [
-          "builtin",
-          "external",
-          "internal",
-          "parent",
-          "sibling",
-          "index",
-          "type",
-        ],
+        groups: ["builtin", "external", "internal", "parent", "sibling", "index", "type"],
         "newlines-between": "always",
         alphabetize: { order: "asc", caseInsensitive: true },
       },
@@ -129,10 +121,11 @@ module.exports = {
     },
     {
       // Next.js App Router files must use default exports.
+      // Matched by basename so the rule fires regardless of whether ESLint runs
+      // from the repo root (`pnpm lint`) or from inside the app (`next build`).
       files: [
-        "apps/console/app/**/{page,layout,loading,error,not-found,template,default,route}.{ts,tsx}",
-        "apps/console/app/**/{page,layout,loading,error,not-found,template,default,route}.{js,jsx}",
-        "apps/console/next.config.*",
+        "**/app/**/{page,layout,loading,error,not-found,template,default,route}.{ts,tsx,js,jsx}",
+        "**/next.config.*",
       ],
       rules: {
         "import/no-default-export": "off",

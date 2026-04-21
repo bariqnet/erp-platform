@@ -32,23 +32,27 @@ numbered, with this structure:
 **Date:** YYYY-MM-DD
 
 ## Context
+
 What problem are we solving? What constraints apply?
 
 ## Decision
+
 What did we choose?
 
 ## Alternatives Considered
+
 What else was on the table, and why was each rejected?
 
 ## Consequences
+
 What are the trade-offs we are accepting? What follow-up work does
 this imply?
 ```
 
 ## Index
 
-| # | Title | Status | Task |
-|---|-------|--------|------|
-| _ | _Reserved for the first decision in TASK-03 (metadata schema)_ | _ | _ |
+| #   | Title                                       | Status | Task    |
+| --- | ------------------------------------------- | ------ | ------- |
+| —   | Reserved for the first decision in TASK-03. | —      | TASK-03 |
 
 ADR-0001 lands with TASK-03 per the task's "Done when" list.

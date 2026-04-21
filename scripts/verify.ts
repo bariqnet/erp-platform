@@ -117,12 +117,7 @@ function invariantRepositoriesExtendBase(project: Project): CheckResult {
       if (!name || !/Repository$/.test(name)) continue;
       if (name === "TenantRepository") continue;
       // Allow an explicit opt-out for vendor-level (tenant-agnostic) repos.
-      const above = sf
-        .getFullText()
-        .slice(0, cls.getStart())
-        .split("\n")
-        .slice(-3)
-        .join("\n");
+      const above = sf.getFullText().slice(0, cls.getStart()).split("\n").slice(-3).join("\n");
       if (/@vendor-repository/.test(above)) continue;
       const ext = cls.getExtends();
       if (!ext || ext.getText() !== "TenantRepository") {
@@ -165,12 +160,7 @@ function invariantRoutesHaveZodSchema(project: Project): CheckResult {
       if (!/^(fastify|server|app)\b/.test(root)) continue;
 
       const args = call.getArguments();
-      const optionsArg =
-        member === "route"
-          ? args[0]
-          : args.length >= 3
-            ? args[1]
-            : undefined;
+      const optionsArg = member === "route" ? args[0] : args.length >= 3 ? args[1] : undefined;
 
       if (!optionsArg || !optionsArg.isKind(SyntaxKind.ObjectLiteralExpression)) {
         violations.push(`${loc(call)} — route has no options object with a schema`);
@@ -218,9 +208,7 @@ function invariantNoSilencingTypes(project: Project): CheckResult {
       if (expectErrMatch) {
         const description = (expectErrMatch[1] ?? "").trim();
         if (description.length < 10) {
-          violations.push(
-            `${fp}:${lineNo} — @ts-expect-error needs a ≥10-char inline description`,
-          );
+          violations.push(`${fp}:${lineNo} — @ts-expect-error needs a ≥10-char inline description`);
         }
       }
       // `as any` and `as unknown as X` checks; skip line-comment-only lines.
@@ -343,6 +331,10 @@ async function main(): Promise<void> {
   if (!ONLY_INVARIANTS) {
     results.push(runShell("pnpm typecheck", "pnpm -r --no-bail run typecheck"));
     results.push(runShell("pnpm lint", "pnpm -r --no-bail run lint"));
+    // CLAUDE.md §4 lists 5 explicit checks; format:check is added because
+    // ESLint does not enforce Prettier (eslint-config-prettier disables only
+    // conflicting rules) and unformatted commits would otherwise pass verify.
+    results.push(runShell("pnpm format:check", "pnpm format:check"));
     results.push(runShell("pnpm test", "pnpm -r --no-bail run test"));
     if (!SKIP_BUILD) {
       results.push(runShell("pnpm build", "pnpm -r run build"));
@@ -370,4 +362,8 @@ async function main(): Promise<void> {
   console.log(`\n✓ verify: all ${results.length} check(s) passed`);
 }
 
-await main();
+main().catch((err: unknown) => {
+  console.error("verify: unexpected error");
+  console.error(err);
+  process.exit(2);
+});

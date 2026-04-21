@@ -1,7 +1,7 @@
 # Pattern — Emitting an Event
 
-> **Status:** Stub. Populated by **TASK-08** (in-process EventBus
-> + Postgres outbox).
+> **Status:** Stub. Populated by **TASK-08** — in-process EventBus
+> backed by a Postgres outbox.
 
 ## Problem
 
@@ -13,7 +13,7 @@ always go through the port.
 
 ## When to emit an event
 
-- A state change happens that *another component* could care about
+- A state change happens that _another component_ could care about
   (`metadata_deployed`, `change_set_approved`, `customer_created`,
   `invoice_posted`).
 - An external integration needs to react asynchronously.

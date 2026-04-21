@@ -14,13 +14,13 @@ everywhere.
 
 ## When to use what
 
-| Situation | Tool |
-|---|---|
-| Expected failure (validation, not-found, conflict) | `Result.err(...)` |
-| Programming error (invariant violated) | `throw new Error(...)` |
-| Infrastructure outage (DB down, Redis unreachable) | Let the framework propagate; surfaced as 503 |
-| HTTP response | RFC 7807 problem+json envelope |
-| Logging | pino structured event with `tenant_id`, `request_id`, `trace_id` |
+| Situation                                          | Tool                                                             |
+| -------------------------------------------------- | ---------------------------------------------------------------- |
+| Expected failure (validation, not-found, conflict) | `Result.err(...)`                                                |
+| Programming error (invariant violated)             | `throw new Error(...)`                                           |
+| Infrastructure outage (DB down, Redis unreachable) | Let the framework propagate; surfaced as 503                     |
+| HTTP response                                      | RFC 7807 problem+json envelope                                   |
+| Logging                                            | pino structured event with `tenant_id`, `request_id`, `trace_id` |
 
 ## Skeleton
 

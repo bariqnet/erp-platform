@@ -14,13 +14,13 @@ before every commit.
 
 ## When to use which type
 
-| Type | When | Tool | Lives in |
-|---|---|---|---|
-| Unit | Every pure function in `@erp/core`, `@erp/metadata`, `@erp/change-set` | Vitest | `src/foo.test.ts` colocated, plus `test/` |
-| Integration | Anything that touches Postgres, Redis, OpenSearch | Vitest + Testcontainers | `test/integration/` |
-| Contract | Every API endpoint, driven by its OpenAPI schema | Vitest | `test/contract/` |
-| End-to-end | 20–30 critical-path scenarios across console + API | Playwright | `apps/console/e2e/` |
-| Property | The metadata resolver — determinism, tombstone correctness, ordered application | fast-check | `packages/metadata/test/` |
+| Type        | When                                                                            | Tool                    | Lives in                                  |
+| ----------- | ------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------- |
+| Unit        | Every pure function in `@erp/core`, `@erp/metadata`, `@erp/change-set`          | Vitest                  | `src/foo.test.ts` colocated, plus `test/` |
+| Integration | Anything that touches Postgres, Redis, OpenSearch                               | Vitest + Testcontainers | `test/integration/`                       |
+| Contract    | Every API endpoint, driven by its OpenAPI schema                                | Vitest                  | `test/contract/`                          |
+| End-to-end  | 20–30 critical-path scenarios across console + API                              | Playwright              | `apps/console/e2e/`                       |
+| Property    | The metadata resolver — determinism, tombstone correctness, ordered application | fast-check              | `packages/metadata/test/`                 |
 
 ## Rules
 

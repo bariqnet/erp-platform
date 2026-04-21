@@ -6,7 +6,7 @@
 ## Problem
 
 CLAUDE.md §2 (Backend) and §5: every domain type is a Zod schema with
-its TypeScript type *inferred* from the schema — never declared
+its TypeScript type _inferred_ from the schema — never declared
 separately. One definition produces three artifacts: runtime
 validation, the TS type, and the OpenAPI contribution.
 
@@ -16,10 +16,12 @@ validation, the TS type, and the OpenAPI contribution.
 // packages/core/src/foo.ts
 import { z } from "zod";
 
-export const FooSchema = z.object({
-  id:   z.string(),
-  name: z.string().min(1),
-}).strict();
+export const FooSchema = z
+  .object({
+    id: z.string(),
+    name: z.string().min(1),
+  })
+  .strict();
 
 export type Foo = z.infer<typeof FooSchema>;
 ```
