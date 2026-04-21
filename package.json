@@ -38,6 +38,7 @@
     "@vitest/coverage-v8": "catalog:",
     "eslint": "catalog:",
     "eslint-config-prettier": "catalog:",
+    "eslint-import-resolver-typescript": "3.7.0",
     "eslint-plugin-import": "catalog:",
     "prettier": "catalog:",
     "rimraf": "6.0.1",

@@ -1,0 +1,28 @@
+{
+  "name": "@erp/config",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Shared tsconfig, ESLint, Prettier, and Vitest presets.",
+  "type": "commonjs",
+  "files": [
+    "tsconfig.base.json",
+    "tsconfig.package.json",
+    "eslintrc.cjs",
+    "prettierrc.cjs",
+    "vitest.config.base.ts"
+  ],
+  "exports": {
+    "./eslintrc": "./eslintrc.cjs",
+    "./prettierrc": "./prettierrc.cjs",
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./tsconfig.package.json": "./tsconfig.package.json",
+    "./vitest.base": "./vitest.config.base.ts"
+  },
+  "scripts": {
+    "build": "echo 'config is JSON + CJS — nothing to build'",
+    "typecheck": "echo 'config has no TS source — nothing to typecheck'",
+    "lint": "echo 'config is linted by the root run'",
+    "test": "echo 'config has no tests'"
+  }
+}
