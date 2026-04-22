@@ -27,8 +27,8 @@ describe("ObjectTypeSchema", () => {
 
   it("round-trips through JSON", () => {
     const value = "Entity";
-    expect(
-      ObjectTypeSchema.parse(JSON.parse(JSON.stringify(ObjectTypeSchema.parse(value)))),
-    ).toBe(value);
+    expect(ObjectTypeSchema.parse(JSON.parse(JSON.stringify(ObjectTypeSchema.parse(value))))).toBe(
+      value,
+    );
   });
 });

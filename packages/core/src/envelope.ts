@@ -50,10 +50,9 @@ export const UpsertEnvelopeSchema = EnvelopeBaseSchema.extend({
   body: z.unknown(),
 }).strict();
 
-export type UpsertEnvelope<Body = unknown> = Omit<
-  z.infer<typeof UpsertEnvelopeSchema>,
-  "body"
-> & { body: Body };
+export type UpsertEnvelope<Body = unknown> = Omit<z.infer<typeof UpsertEnvelopeSchema>, "body"> & {
+  body: Body;
+};
 
 // ── Tombstone envelope ────────────────────────────────────────────────
 

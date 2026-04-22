@@ -1,19 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { EntityBodySchema, EntityNameSchema, LifecycleSchema, StorageSchema } from "./entity.js";
-import type { EntityBody } from "./entity.js";
+import {
+  EntityBodySchema,
+  EntityNameSchema,
+  LifecycleSchema,
+  StorageSchema,
+  type EntityBody,
+} from "./entity.js";
 
 describe("EntityNameSchema", () => {
   it.each(["Customer", "PurchaseOrder", "Invoice", "T"])("accepts %s", (n) => {
     expect(EntityNameSchema.parse(n)).toBe(n);
   });
 
-  it.each(["customer", "1Customer", "Customer-Name", "", "a".repeat(65)])(
-    "rejects %s",
-    (n) => {
-      expect(() => EntityNameSchema.parse(n)).toThrow();
-    },
-  );
+  it.each(["customer", "1Customer", "Customer-Name", "", "a".repeat(65)])("rejects %s", (n) => {
+    expect(() => EntityNameSchema.parse(n)).toThrow();
+  });
 });
 
 describe("StorageSchema", () => {
@@ -46,9 +48,9 @@ describe("LifecycleSchema", () => {
   });
 
   it("rejects when initial is not in states", () => {
-    expect(() =>
-      LifecycleSchema.parse({ states: ["a", "b"], initial: "c" }),
-    ).toThrow(/initial state .* must appear in states/);
+    expect(() => LifecycleSchema.parse({ states: ["a", "b"], initial: "c" })).toThrow(
+      /initial state .* must appear in states/,
+    );
   });
 });
 
@@ -114,9 +116,7 @@ describe("EntityBodySchema", () => {
   });
 
   it("rejects a stray top-level key", () => {
-    expect(() =>
-      EntityBodySchema.parse({ ...customer, surprise: true }),
-    ).toThrow();
+    expect(() => EntityBodySchema.parse({ ...customer, surprise: true })).toThrow();
   });
 
   it("requires at least one field", () => {

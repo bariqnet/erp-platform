@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  LocaleSchema,
-  LocalizationBodySchema,
-  LocalizedStringSchema,
-} from "./localization.js";
+import { LocaleSchema, LocalizationBodySchema, LocalizedStringSchema } from "./localization.js";
 
 describe("LocaleSchema", () => {
   it.each(["en", "ar", "ar-IQ", "fr-CA", "ku", "aii"])("accepts %s", (locale) => {

@@ -15,12 +15,9 @@ describe("FieldNameSchema", () => {
     expect(FieldNameSchema.parse(name)).toBe(name);
   });
 
-  it.each(["Name", "1field", "tax-id", "tax.id", "", "a".repeat(64)])(
-    "rejects %s",
-    (name) => {
-      expect(() => FieldNameSchema.parse(name)).toThrow();
-    },
-  );
+  it.each(["Name", "1field", "tax-id", "tax.id", "", "a".repeat(64)])("rejects %s", (name) => {
+    expect(() => FieldNameSchema.parse(name)).toThrow();
+  });
 });
 
 describe("FIELD_TYPES", () => {

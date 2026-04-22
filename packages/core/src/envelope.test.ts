@@ -121,9 +121,7 @@ describe("EnvelopeSchema discriminated union", () => {
   });
 
   it("rejects an unknown operation", () => {
-    expect(() =>
-      EnvelopeSchema.parse({ ...BASE, operation: "patch", body: {} }),
-    ).toThrow();
+    expect(() => EnvelopeSchema.parse({ ...BASE, operation: "patch", body: {} })).toThrow();
   });
 });
 
@@ -147,9 +145,7 @@ describe("envelopeWithBody", () => {
 
   it("rejects bodies that do not match the passed schema", () => {
     const IntBody = envelopeWithBody(z.object({ n: z.number().int() }).strict());
-    expect(() =>
-      IntBody.parse({ ...BASE, operation: "upsert", body: { n: 1.5 } }),
-    ).toThrow();
+    expect(() => IntBody.parse({ ...BASE, operation: "upsert", body: { n: 1.5 } })).toThrow();
   });
 
   it("round-trips through JSON with the typed body preserved", () => {
@@ -164,9 +160,7 @@ describe("envelopeWithBody", () => {
         fields: [{ name: "code", type: "string" as const, required: true }],
       },
     };
-    const parsed = EntityEnvelope.parse(
-      JSON.parse(JSON.stringify(EntityEnvelope.parse(value))),
-    );
+    const parsed = EntityEnvelope.parse(JSON.parse(JSON.stringify(EntityEnvelope.parse(value))));
     expect(parsed).toEqual(value);
   });
 });

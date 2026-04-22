@@ -49,12 +49,7 @@ export {
   type FieldType,
 } from "./field.js";
 
-export {
-  LayerSchema,
-  TENANT_SCOPED_LAYERS,
-  VENDOR_GLOBAL_LAYERS,
-  type Layer,
-} from "./layer.js";
+export { LayerSchema, TENANT_SCOPED_LAYERS, VENDOR_GLOBAL_LAYERS, type Layer } from "./layer.js";
 
 export {
   LocaleSchema,
@@ -87,8 +82,4 @@ export {
   type RelationshipType,
 } from "./relationship.js";
 
-export {
-  OBJECT_TYPE_ID_PREFIX,
-  ObjectTypeSchema,
-  type ObjectType,
-} from "./object-type.js";
+export { OBJECT_TYPE_ID_PREFIX, ObjectTypeSchema, type ObjectType } from "./object-type.js";

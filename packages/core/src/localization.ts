@@ -26,9 +26,7 @@ export type Locale = z.infer<typeof LocaleSchema>;
 // translated display string. `en` is required (English is the fallback
 // pillar per CLAUDE.md §2); other locales are optional.
 
-export const LocalizedStringSchema = z
-  .object({ en: z.string().min(1) })
-  .catchall(z.string());
+export const LocalizedStringSchema = z.object({ en: z.string().min(1) }).catchall(z.string());
 
 export type LocalizedString = z.infer<typeof LocalizedStringSchema>;
 

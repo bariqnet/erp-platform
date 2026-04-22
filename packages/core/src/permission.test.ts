@@ -66,9 +66,7 @@ describe("PermissionBodySchema", () => {
   });
 
   it("rejects unknown keys", () => {
-    expect(() =>
-      PermissionBodySchema.parse({ role_id: "prm.r", god_mode: true }),
-    ).toThrow();
+    expect(() => PermissionBodySchema.parse({ role_id: "prm.r", god_mode: true })).toThrow();
   });
 
   it("round-trips through JSON", () => {

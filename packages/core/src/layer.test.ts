@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  LayerSchema,
-  TENANT_SCOPED_LAYERS,
-  VENDOR_GLOBAL_LAYERS,
-  type Layer,
-} from "./layer.js";
+import { LayerSchema, TENANT_SCOPED_LAYERS, VENDOR_GLOBAL_LAYERS, type Layer } from "./layer.js";
 
 describe("LayerSchema", () => {
   it.each(["L0", "L1", "L2", "L3", "L4"])("accepts the canonical layer %s", (layer) => {
