@@ -3,6 +3,16 @@
 // stay alphabetical per file for review-time diff clarity.
 
 export {
+  EnvelopeSchema,
+  TombstoneEnvelopeSchema,
+  UpsertEnvelopeSchema,
+  envelopeWithBody,
+  type Envelope,
+  type TombstoneEnvelope,
+  type UpsertEnvelope,
+} from "./envelope.js";
+
+export {
   EntityBodySchema,
   EntityNameSchema,
   IndexSchema,
