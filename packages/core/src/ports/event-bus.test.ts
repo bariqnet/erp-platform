@@ -95,15 +95,12 @@ describe("DomainEventSchema", () => {
     expect(DomainEventSchema.parse(e)).toEqual(e);
   });
 
-  it.each([
-    "Deployed",
-    "metadata-deployed",
-    "metadata",
-    "",
-    "metadata..deployed",
-  ])("rejects an invalid event_type %s", (bad) => {
-    expect(() => DomainEventSchema.parse(makeEvent({ event_type: bad }))).toThrow();
-  });
+  it.each(["Deployed", "metadata-deployed", "metadata", "", "metadata..deployed"])(
+    "rejects an invalid event_type %s",
+    (bad) => {
+      expect(() => DomainEventSchema.parse(makeEvent({ event_type: bad }))).toThrow();
+    },
+  );
 
   it("rejects an event_id that is not a UUID", () => {
     expect(() => DomainEventSchema.parse(makeEvent({ event_id: "not-a-uuid" }))).toThrow();
@@ -114,9 +111,7 @@ describe("DomainEventSchema", () => {
   });
 
   it("rejects unknown keys (strict)", () => {
-    expect(() =>
-      DomainEventSchema.parse({ ...makeEvent(), stray: "nope" }),
-    ).toThrow();
+    expect(() => DomainEventSchema.parse({ ...makeEvent(), stray: "nope" })).toThrow();
   });
 
   it("round-trips through JSON with a typed payload", () => {

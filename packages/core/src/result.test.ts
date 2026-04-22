@@ -93,18 +93,13 @@ describe("Result.flatMap", () => {
   });
 
   it("propagates err and widens the error type", () => {
-    const parseInt = (_: string): Result<number, "not_a_number"> =>
-      Result.err("not_a_number");
-    const r = Result.flatMap(
-      Result.err("missing") as Result<string, "missing">,
-      parseInt,
-    );
+    const parseInt = (_: string): Result<number, "not_a_number"> => Result.err("not_a_number");
+    const r = Result.flatMap(Result.err("missing") as Result<string, "missing">, parseInt);
     expect(r).toEqual({ ok: false, error: "missing" });
   });
 
   it("returns the inner err when the first step succeeds and the next fails", () => {
-    const parseInt = (_: string): Result<number, "not_a_number"> =>
-      Result.err("not_a_number");
+    const parseInt = (_: string): Result<number, "not_a_number"> => Result.err("not_a_number");
     const r = Result.flatMap(Result.ok("abc") as Result<string, never>, parseInt);
     expect(r).toEqual({ ok: false, error: "not_a_number" });
   });
@@ -144,10 +139,7 @@ describe("Result.unwrap / unwrapOr / unwrapOrElse", () => {
   });
 
   it("unwrapOrElse computes the fallback from the error on err", () => {
-    const out = Result.unwrapOrElse(
-      Result.err("boom") as Result<number, string>,
-      (e) => e.length,
-    );
+    const out = Result.unwrapOrElse(Result.err("boom") as Result<number, string>, (e) => e.length);
     expect(out).toBe(4);
   });
 });

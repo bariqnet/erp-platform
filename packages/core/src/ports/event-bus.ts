@@ -131,10 +131,7 @@ export interface EventBus {
    * Subscribe to every event whose `event_type` equals `eventType`. Exact
    * match only — no wildcards in Phase 1.
    */
-  subscribe<TPayload = unknown>(
-    eventType: string,
-    handler: EventHandler<TPayload>,
-  ): Subscription;
+  subscribe<TPayload = unknown>(eventType: string, handler: EventHandler<TPayload>): Subscription;
 
   /**
    * Wait for the next event matching `predicate`. Primarily used in tests
