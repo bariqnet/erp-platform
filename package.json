@@ -27,6 +27,7 @@
     "lint:fix": "turbo run lint -- --fix",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
+    "test:integration": "turbo run test:integration",
     "typecheck": "turbo run typecheck",
     "verify": "tsx scripts/verify.ts",
     "verify:fast": "tsx scripts/verify.ts --skip-build"

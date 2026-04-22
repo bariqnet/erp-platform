@@ -33,6 +33,11 @@
       "outputs": ["playwright-report/**", "test-results/**"],
       "cache": false
     },
+    "test:integration": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "cache": false
+    },
     "dev": {
       "persistent": true,
       "cache": false

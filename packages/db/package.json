@@ -22,7 +22,8 @@
     "dev": "tsc -b --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run -c vitest.integration.config.ts"
   },
   "dependencies": {
     "@erp/core": "workspace:*"
@@ -30,6 +31,10 @@
   "devDependencies": {
     "@erp/config": "workspace:*",
     "@types/node": "catalog:",
+    "@types/pg": "8.11.10",
+    "ioredis": "catalog:",
+    "pg": "8.13.3",
+    "testcontainers": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

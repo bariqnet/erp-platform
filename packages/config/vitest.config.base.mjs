@@ -24,7 +24,10 @@ export const baseConfig = defineConfig({
     restoreMocks: true,
     passWithNoTests: false,
     include: ["src/**/*.test.ts", "test/**/*.test.ts"],
-    exclude: ["node_modules", "dist", ".turbo", "coverage"],
+    // *.integration.test.ts runs via `pnpm test:integration`, not the default
+    // `pnpm test`, because integration tests spin up real containers and are
+    // too slow for every-commit verify.
+    exclude: ["node_modules", "dist", ".turbo", "coverage", "**/*.integration.test.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],

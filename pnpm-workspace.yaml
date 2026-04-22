@@ -11,7 +11,9 @@ catalog:
   eslint: 8.57.1
   eslint-config-prettier: 9.1.0
   eslint-plugin-import: 2.31.0
+  ioredis: 5.5.0
   prettier: 3.5.3
+  testcontainers: 10.18.0
   tsx: 4.19.3
   typescript: 5.8.3
   vitest: 3.1.1
