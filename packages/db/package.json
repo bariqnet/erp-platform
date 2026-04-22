@@ -26,14 +26,15 @@
     "test:integration": "vitest run -c vitest.integration.config.ts"
   },
   "dependencies": {
-    "@erp/core": "workspace:*"
+    "@erp/core": "workspace:*",
+    "kysely": "catalog:",
+    "pg": "8.13.3"
   },
   "devDependencies": {
     "@erp/config": "workspace:*",
     "@types/node": "catalog:",
     "@types/pg": "8.11.10",
     "ioredis": "catalog:",
-    "pg": "8.13.3",
     "testcontainers": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
