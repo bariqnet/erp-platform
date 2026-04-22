@@ -3,6 +3,20 @@
 // stay alphabetical per file for review-time diff clarity.
 
 export {
+  EntityBodySchema,
+  EntityNameSchema,
+  IndexSchema,
+  LifecycleSchema,
+  StorageSchema,
+  StorageStrategySchema,
+  type EntityBody,
+  type Index,
+  type Lifecycle,
+  type Storage,
+  type StorageStrategy,
+} from "./entity.js";
+
+export {
   AttachmentFieldSchema,
   BooleanFieldSchema,
   DateFieldSchema,
@@ -42,6 +56,17 @@ export {
 } from "./localization.js";
 
 export { ObjectIdSchema, type ObjectId } from "./object-id.js";
+
+export {
+  EntityGrantsSchema,
+  FieldGrantsSchema,
+  GrantActionSchema,
+  PermissionBodySchema,
+  type EntityGrants,
+  type FieldGrants,
+  type GrantAction,
+  type PermissionBody,
+} from "./permission.js";
 
 export {
   CascadeSchema,
