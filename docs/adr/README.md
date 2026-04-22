@@ -51,8 +51,8 @@ this imply?
 
 ## Index
 
-| #   | Title                                       | Status | Task    |
-| --- | ------------------------------------------- | ------ | ------- |
-| —   | Reserved for the first decision in TASK-03. | —      | TASK-03 |
+| #                                 | Title                 | Status   | Task    |
+| --------------------------------- | --------------------- | -------- | ------- |
+| [0001](./0001-metadata-schema.md) | Metadata Schema Shape | Accepted | TASK-03 |
 
 ADR-0001 lands with TASK-03 per the task's "Done when" list.
