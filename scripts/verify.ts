@@ -23,7 +23,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { globSync } from "tinyglobby";
-import { Project, SyntaxKind, type Node, type SourceFile } from "ts-morph";
+import { Project, SyntaxKind, type Node } from "ts-morph";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

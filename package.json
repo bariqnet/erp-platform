@@ -20,6 +20,7 @@
   "scripts": {
     "build": "turbo run build",
     "clean": "turbo run clean && rimraf node_modules/.cache .turbo",
+    "db:migrate": "tsx scripts/db-migrate.ts",
     "dev": "turbo run dev",
     "format": "prettier --write \"**/*.{ts,tsx,js,cjs,mjs,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,cjs,mjs,json,md,yml,yaml}\"",
@@ -41,6 +42,8 @@
     "eslint-config-prettier": "catalog:",
     "eslint-import-resolver-typescript": "3.7.0",
     "eslint-plugin-import": "catalog:",
+    "kysely": "catalog:",
+    "pg": "8.13.3",
     "prettier": "catalog:",
     "rimraf": "6.0.1",
     "tinyglobby": "0.2.10",

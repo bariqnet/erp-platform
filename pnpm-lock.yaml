@@ -30,6 +30,9 @@ catalogs:
     ioredis:
       specifier: 5.5.0
       version: 5.5.0
+    kysely:
+      specifier: 0.27.6
+      version: 0.27.6
     prettier:
       specifier: 3.5.3
       version: 3.5.3
@@ -77,6 +80,12 @@ importers:
       eslint-plugin-import:
         specifier: 'catalog:'
         version: 2.31.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.7.0)(eslint@8.57.1)
+      kysely:
+        specifier: 'catalog:'
+        version: 0.27.6
+      pg:
+        specifier: 8.13.3
+        version: 8.13.3
       prettier:
         specifier: 'catalog:'
         version: 3.5.3
@@ -286,6 +295,12 @@ importers:
       '@erp/core':
         specifier: workspace:*
         version: link:../core
+      kysely:
+        specifier: 'catalog:'
+        version: 0.27.6
+      pg:
+        specifier: 8.13.3
+        version: 8.13.3
     devDependencies:
       '@erp/config':
         specifier: workspace:*
@@ -299,9 +314,6 @@ importers:
       ioredis:
         specifier: 'catalog:'
         version: 5.5.0
-      pg:
-        specifier: 8.13.3
-        version: 8.13.3
       testcontainers:
         specifier: 'catalog:'
         version: 10.18.0
@@ -1922,6 +1934,10 @@ packages:
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
+
+  kysely@0.27.6:
+    resolution: {integrity: sha512-FIyV/64EkKhJmjgC0g2hygpBv5RNWVPyNCqSAD7eTCv6eFWNIi4PN1UvdSJGicN/o35bnevgis4Y0UDC0qi8jQ==}
+    engines: {node: '>=14.0.0'}
 
   lazystream@1.0.1:
     resolution: {integrity: sha512-b94GiNHQNy6JNTrt5w6zNyffMrNkXZb3KTkCZJb2V1xaEGCk093vkZ2jk3tpaeP33/OiXC+WvK9AxUebnf5nbw==}
@@ -4414,6 +4430,8 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
+
+  kysely@0.27.6: {}
 
   lazystream@1.0.1:
     dependencies:
