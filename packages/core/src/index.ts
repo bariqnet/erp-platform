@@ -96,4 +96,13 @@ export {
   type WaitForOptions,
 } from "./ports/event-bus.js";
 
+export {
+  DEFAULT_MERGE_STRATEGY,
+  MergeStrategySchema,
+  type FetchCandidateParams,
+  type LayerCandidate,
+  type MergeStrategy,
+  type MetadataStore,
+} from "./ports/metadata-store.js";
+
 export { Result, type Err, type Ok } from "./result.js";
