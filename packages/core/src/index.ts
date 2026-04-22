@@ -84,4 +84,16 @@ export {
 
 export { OBJECT_TYPE_ID_PREFIX, ObjectTypeSchema, type ObjectType } from "./object-type.js";
 
+export {
+  DomainEventSchema,
+  TraceContextSchema,
+  type DomainEvent,
+  type DomainEventBase,
+  type EventBus,
+  type EventHandler,
+  type Subscription,
+  type TraceContext,
+  type WaitForOptions,
+} from "./ports/event-bus.js";
+
 export { Result, type Err, type Ok } from "./result.js";
