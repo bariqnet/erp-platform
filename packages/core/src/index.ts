@@ -83,3 +83,5 @@ export {
 } from "./relationship.js";
 
 export { OBJECT_TYPE_ID_PREFIX, ObjectTypeSchema, type ObjectType } from "./object-type.js";
+
+export { Result, type Err, type Ok } from "./result.js";
