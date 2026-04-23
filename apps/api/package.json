@@ -27,6 +27,7 @@
     "@erp/db": "workspace:*",
     "@erp/events": "workspace:*",
     "@erp/i18n": "workspace:*",
+    "@erp/kernel-runtime": "workspace:*",
     "@erp/metadata": "workspace:*",
     "@erp/telemetry": "workspace:*",
     "@fastify/rate-limit": "9.1.0",

@@ -14,9 +14,14 @@ spec at `/docs/openapi.json`.
 
 ## Boundaries
 
-**Imports:** every `@erp/*` package except `@erp/ui-kit` and
-`@erp/kernel-runtime` (the kernel runtime is consumed via `apps/kernel`
-over the internal API, not directly).
+**Imports:** every `@erp/*` package except `@erp/ui-kit`. Includes
+`@erp/kernel-runtime` — the materializer is a pure function (zero
+infrastructure), and the Runtime API uses it in-process to derive
+per-request Zod validators from resolved metadata. apps/kernel
+remains a separate service for direct-kernel use cases (internal
+tools, BI, the AI Specialist), but apps/api does its own in-process
+resolve + materialize on the hot Runtime API path so there's no
+extra network hop per customer/invoice/product request.
 
 **Wiring rule:** Fastify, Kysely, Redis, Better Auth, the OTel SDK,
 and pino are all instantiated **only** in `src/server.ts`. Every
@@ -64,3 +69,16 @@ This is CLAUDE.md §7 non-negotiable #11.
 - `apps/api` populates progressively: TASK-09 (skeleton), TASK-10
   (Admin API), TASK-12 (Runtime API). TASK-01 ships only the wiring
   stub.
+- The Runtime API Permission Gate denies **before** leaking entity
+  existence: a request for `ent.ghost` from a caller without any
+  grant returns 403, not 404. Tests that want to exercise the 404
+  `entity_not_deployed` path must seed a broad permission first
+  (see `test/integration/runtime-routes.integration.test.ts`).
+- The materialized-entity cache (`MaterializedEntityCache`) is keyed
+  on a hash of the resolver's full provenance stack, not the highest
+  version number. When a tenant adds an L2 override for an entity
+  whose L0 is at v1, the L2 row is also v1; `max(version)` would
+  stay at 1 and the stale L0-only validator would still be served.
+  `provenanceVersionKey()` in `services/runtime-entity-service.ts`
+  hashes `<layer>:<version>` pairs so each unique stack yields a
+  unique key.

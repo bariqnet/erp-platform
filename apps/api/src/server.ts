@@ -9,10 +9,12 @@
 import { type OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
 import {
   ChangeSetRepository,
+  EntityRowRepository,
   MetadataObjectRepository,
   createDatabase,
   type Database,
 } from "@erp/db";
+import { MaterializedEntityCache } from "@erp/kernel-runtime";
 import { createLogger, type Logger } from "@erp/telemetry";
 import { fastify, type FastifyInstance } from "fastify";
 import { type Kysely } from "kysely";
@@ -29,8 +31,11 @@ import tenantContextPlugin from "./plugins/tenant-context.js";
 import { registerChangeSetRoutes } from "./routes/admin/changes.js";
 import { registerMetadataObjectRoutes } from "./routes/admin/metadata-objects.js";
 import { registerHealthRoutes } from "./routes/health.js";
+import { registerRuntimeEntityRoutes } from "./routes/runtime/entities.js";
 import { ChangeSetService } from "./services/change-set-service.js";
 import { MetadataObjectService } from "./services/metadata-object-service.js";
+import { PermissionGate } from "./services/permission-gate.js";
+import { RuntimeEntityService } from "./services/runtime-entity-service.js";
 
 export interface BuildServerInput {
   /** Postgres connection string. */
@@ -99,8 +104,24 @@ export async function buildServer(input: BuildServerInput = {}): Promise<ServerH
   // state of their own.
   const metadataObjectRepo = new MetadataObjectRepository(db);
   const changeSetRepo = new ChangeSetRepository(db);
+  const entityRowRepo = new EntityRowRepository(db);
   const metadataObjectService = new MetadataObjectService(metadataObjectRepo);
   const changeSetService = new ChangeSetService(changeSetRepo);
+
+  // Runtime API: the materialized-entity cache is version-keyed
+  // (RFC §5.3 #6) — new deploys produce new keys, old keys age out
+  // via LRU. No explicit invalidation needed on the hot path.
+  const materializedCache = new MaterializedEntityCache();
+  const permissionGate = new PermissionGate(metadataObjectRepo, (tenantId) =>
+    metadataObjectRepo.listActiveObjectIds(tenantId, "Permission"),
+  );
+  const runtimeEntityService = new RuntimeEntityService(
+    metadataObjectRepo,
+    entityRowRepo,
+    metadataObjectRepo,
+    permissionGate,
+    materializedCache,
+  );
 
   await registerHealthRoutes(app, {
     serviceName: SERVICE_NAME,
@@ -110,6 +131,7 @@ export async function buildServer(input: BuildServerInput = {}): Promise<ServerH
   });
   await registerMetadataObjectRoutes(app, { registry, service: metadataObjectService });
   await registerChangeSetRoutes(app, { registry, service: changeSetService });
+  await registerRuntimeEntityRoutes(app, { registry, service: runtimeEntityService });
 
   return {
     app,
