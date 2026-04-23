@@ -20,9 +20,10 @@
   "scripts": {
     "build": "turbo run build",
     "clean": "turbo run clean && rimraf node_modules/.cache .turbo",
-    "db:migrate": "tsx scripts/db-migrate.ts",
-    "db:seed": "tsx scripts/seed.ts",
-    "dev": "turbo run dev",
+    "db:migrate": "tsx --env-file=.env scripts/db-migrate.ts",
+    "db:seed": "tsx --env-file=.env scripts/seed.ts",
+    "dev": "turbo run dev --concurrency=20",
+    "dev:services": "turbo run dev --filter=@erp/api --filter=@erp/kernel --filter=@erp/worker --concurrency=20",
     "format": "prettier --write \"**/*.{ts,tsx,js,cjs,mjs,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,cjs,mjs,json,md,yml,yaml}\"",
     "lint": "turbo run lint",

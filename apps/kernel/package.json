@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc -b",
     "clean": "rimraf dist .turbo",
-    "dev": "tsc -b --watch",
+    "dev": "tsx watch --env-file=../../.env --clear-screen=false src/index.ts",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test",
@@ -41,6 +41,7 @@
     "@types/pg": "8.11.10",
     "pg": "8.13.3",
     "testcontainers": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

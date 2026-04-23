@@ -6,9 +6,20 @@
 // file in the codebase instantiates `Pool` or `Kysely` directly.
 
 import { Kysely, PostgresDialect } from "kysely";
-import { Pool, type PoolConfig } from "pg";
+import pg from "pg";
 
 import type { Database } from "./schema.js";
+
+// `pg` is CommonJS; Node's ESM layer cannot synthesize named exports
+// for it (its internals assign onto module.exports at runtime in ways
+// the static analyzer can't follow). The default-import shim below is
+// the idiomatic workaround — it works in Node ESM, tsx, and vitest
+// alike. The test files opt into vitest's transformer and can keep
+// the `import { Pool } from "pg"` form; production code (this file)
+// cannot.
+const { Pool } = pg;
+type PoolType = InstanceType<typeof pg.Pool>;
+type PoolConfig = pg.PoolConfig;
 
 export interface DatabaseConfig {
   /** libpq-style URL, e.g. `postgresql://erp:erp@localhost:5432/erp_dev`. */
@@ -21,7 +32,7 @@ export interface DatabaseConfig {
   connectionTimeoutMillis?: number;
 }
 
-export function createPool(config: DatabaseConfig): Pool {
+export function createPool(config: DatabaseConfig): PoolType {
   const poolConfig: PoolConfig = {
     connectionString: config.connectionString,
     max: config.max ?? 10,

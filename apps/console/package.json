@@ -8,9 +8,9 @@
   "scripts": {
     "build": "next build",
     "clean": "rimraf .next .turbo",
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 3002",
     "lint": "eslint app",
-    "start": "next start --port 3000",
+    "start": "next start --port 3002",
     "test": "echo 'apps/console has no unit tests in TASK-01; e2e arrives in TASK-12'",
     "typecheck": "tsc --noEmit"
   },

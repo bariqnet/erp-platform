@@ -152,6 +152,121 @@ Make sure the runtime's `bin/` is on your `PATH`. Check with
 | Docker Desktop | `/Applications/Docker.app/Contents/Resources/bin/docker` |
 | Colima         | `/opt/homebrew/bin/docker` (via `brew install docker`)   |
 
+## Running the app services
+
+Once the compose stack is up, four Node services can run on top of it.
+Three are always running (`apps/api`, `apps/kernel`, `apps/worker`); the
+fourth is the Next.js admin console (`apps/console`) which you start only
+when you want the UI.
+
+### Prerequisite steps (once per clean checkout)
+
+```bash
+# 1. Install deps
+pnpm install
+
+# 2. Create your local .env (the ports below are the defaults;
+#    change them if another project on your machine already uses them)
+cp .env.example .env
+
+# 3. Apply database migrations (idempotent — safe to re-run)
+pnpm db:migrate
+
+# 4. Seed the reference tenant `t_demo_retail`
+#    (idempotent — second run is a no-op)
+pnpm db:seed
+```
+
+### Start the three backend services together
+
+```bash
+pnpm dev:services
+```
+
+This runs `apps/api`, `apps/kernel`, and `apps/worker` concurrently via
+tsx-watch — they restart automatically on file changes.
+
+Default ports (overridable in `.env`):
+
+| Service       | URL                     | What it serves                                            |
+| ------------- | ----------------------- | --------------------------------------------------------- |
+| `apps/api`    | `http://localhost:4000` | Admin API `/admin/v1/*` + Runtime API `/v1/:entity[/:id]` |
+| `apps/kernel` | `http://localhost:4100` | `POST /internal/resolve`, `/healthz`, `/readyz`           |
+| `apps/worker` | _no HTTP surface_       | Outbox pump, ticks every 250 ms                           |
+
+> The defaults were moved from 3000 → 4000 for `apps/api` because port
+> 3000 is commonly taken by local Next.js dev on macOS. If 4000 is also
+> busy, override `PORT` in `.env`. Same for `KERNEL_PORT` (default 4100).
+
+### Quick smoke test
+
+```bash
+# health probes
+curl -s http://localhost:4000/healthz
+curl -s http://localhost:4100/healthz
+
+# list seeded customers
+curl -s \
+  -H "x-tenant-id: t_demo_retail" \
+  -H "x-user-id: u_demo" \
+  -H "x-user-roles: prm.admin" \
+  "http://localhost:4000/v1/ent.customer?limit=3"
+
+# resolve entity metadata through the kernel
+curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"tenant_id":"t_demo_retail","object_id":"ent.customer"}' \
+  http://localhost:4100/internal/resolve
+
+# OpenAPI spec (every route is registered there)
+curl -s http://localhost:4000/docs/openapi.json | jq '.paths | keys'
+```
+
+### Everything (services + Next.js console)
+
+```bash
+pnpm dev
+```
+
+Starts the same three services **plus** `apps/console` on
+`http://localhost:3002`. Use this when you also want the UI; the
+backend-only workflow (`pnpm dev:services`) is cheaper during API work.
+
+### Auth during dev
+
+CLAUDE.md §2 pins Better Auth, but that integration is deferred per
+[ADR-0002](../adr/0002-better-auth-zod-4-deferral.md). In the meantime
+the `auth` plugin accepts three dev headers:
+
+| Header         | Value                                    |
+| -------------- | ---------------------------------------- |
+| `x-tenant-id`  | `t_demo_retail` (or any valid tenant id) |
+| `x-user-id`    | any string — appears in audit rows       |
+| `x-user-roles` | comma-separated — e.g. `prm.admin`       |
+
+The seeded Permission objects are:
+
+- `prm.admin` — CRUD on every seeded entity
+- `prm.viewer` — read-only on every seeded entity
+
+Omitting the headers while `authRequired: true` (the dev default when
+`NODE_ENV=production`) returns 401 / 403. Unset `NODE_ENV` or set it to
+`development` to fall through.
+
+### Watch the logs
+
+Each service emits structured pino JSON with `pino-pretty` enabled in
+dev. Look for `event: "resolve"` on the kernel for cache hits vs.
+misses, and `action: "ent.customer.create"` on the API for audit rows.
+
+### Stop
+
+```
+Ctrl-C
+```
+
+in the terminal running `pnpm dev` / `pnpm dev:services`. tsx's watcher
+and each service's `SIGINT` handler shut them down cleanly.
+
 ## Testcontainers for integration tests
 
 `docker compose up` is for long-running dev state. **Integration tests

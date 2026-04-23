@@ -183,6 +183,9 @@ importers:
       testcontainers:
         specifier: 'catalog:'
         version: 10.18.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.19.3
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
@@ -284,6 +287,9 @@ importers:
       testcontainers:
         specifier: 'catalog:'
         version: 10.18.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.19.3
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
@@ -321,6 +327,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 20.17.30
+      tsx:
+        specifier: 'catalog:'
+        version: 4.19.3
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
