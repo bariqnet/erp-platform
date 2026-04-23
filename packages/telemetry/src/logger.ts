@@ -47,7 +47,7 @@ export function createLogger(input: CreateLoggerInput): Logger {
     },
     timestamp: pino.stdTimeFunctions.isoTime,
     redact: {
-      paths: REDACT_PATHS,
+      paths: [...REDACT_PATHS],
       censor: "[redacted]",
     },
   };

@@ -143,6 +143,16 @@ module.exports = {
         "@typescript-eslint/no-non-null-assertion": "off",
       },
     },
+    {
+      // Fastify plugins idiomatically `export default fp(...)`. The whole
+      // ecosystem expects `import myPlugin from "./plugins/foo.js"` so
+      // `app.register(myPlugin)` works without naming gymnastics.
+      files: ["**/plugins/**/*.ts", "**/plugins/**/*.tsx"],
+      rules: {
+        "import/no-default-export": "off",
+        "no-restricted-syntax": "off",
+      },
+    },
   ],
   ignorePatterns: [
     "dist",
