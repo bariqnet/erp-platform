@@ -14,25 +14,29 @@ in parallel with another if you have the bandwidth.
 
 ## TASK-10.1 — Better Auth integration + Zod 4 migration
 
-**Goal:** replace the placeholder `x-user-id` / `x-user-roles` header
-auth with Better Auth (CLAUDE.md §2). Pre-requisite is the Zod 3 →
-Zod 4 migration across the 29 source files that import zod today.
+Split into two sub-tasks because the Zod migration is the blocking
+prerequisite and deserves its own commit trail.
 
-**RFC anchor:** CLAUDE.md §2 (Auth stack), [ADR-0002](../adr/0002-better-auth-zod-4-deferral.md).
+### TASK-10.1a — Zod 3 → Zod 4 migration ✅ DONE
+
+Shipped on main. See [ADR-0003](../adr/0003-zod-4-migration.md).
+`pnpm verify` green; 113 integration tests pass on Zod 4.
+
+### TASK-10.1b — Better Auth wiring
+
+**Goal:** replace the placeholder `x-user-id` / `x-user-roles` header
+auth with Better Auth (CLAUDE.md §2). Zod 4 is now in place
+(TASK-10.1a), so Better Auth's peer-dep on `zod@^4.0.0` is satisfied.
+
+**RFC anchor:** CLAUDE.md §2 (Auth stack), [ADR-0002](../adr/0002-better-auth-zod-4-deferral.md), [ADR-0003](../adr/0003-zod-4-migration.md).
 
 **Done when:**
 
-- [ ] `zod@catalog:` bumps to `4.x` in `pnpm-workspace.yaml`.
-- [ ] Every `ZodError.issues` inspection site migrated to the v4 shape
-      (`apps/api/src/plugins/errors.ts`, `apps/kernel/src/plugins/errors.ts`,
-      `apps/api/src/services/runtime-entity-service.ts`, `permission-gate.ts`).
-- [ ] Every `z.record(value)` call takes an explicit key type in v4
-      (the grep for `z.record(` returns N sites — all touched).
-- [ ] `@asteasolutions/zod-to-openapi` bumped to a Zod-4-compatible
-      release; `extendZodWithOpenApi(z)` still sits in both OpenAPI
-      registries.
-- [ ] Round-trip tests in `@erp/core/src/*.test.ts` updated to the
-      v4 issue shape; all existing tests stay green.
+- [x] ~~`zod@catalog:` bumps to `4.x` in `pnpm-workspace.yaml`.~~ (TASK-10.1a, ADR-0003)
+- [x] ~~ZodError.issues inspection sites compatible.~~ (TASK-10.1a; no changes needed — v4 kept the shape.)
+- [x] ~~Every `z.record(value)` call.~~ (TASK-10.1a; all 14 sites were already 2-arg.)
+- [x] ~~`@asteasolutions/zod-to-openapi` bumped.~~ (TASK-10.1a — now 8.5.0.)
+- [x] ~~Round-trip tests in `@erp/core/src/*.test.ts` stay green on v4.~~ (TASK-10.1a — unmodified.)
 - [ ] Migration 0005 `0005_auth.sql` creates the Better Auth tables
       (users, sessions, accounts, verifications) in the `metadata`
       schema with RLS policies on every tenant-scoped table.
@@ -51,11 +55,13 @@ tenantId}`.
 - [ ] ADR-0002 status flips to `Superseded by ADR-NNNN` with the new
       ADR covering the completed migration.
 
-**Dependencies:** none — blocks TASK-14.2, TASK-14.5, and most Phase
-2 tasks that touch user-facing surface area.
+**Dependencies:** TASK-10.1a done. Blocks TASK-14.2, TASK-14.5, and
+most Phase 2 tasks that touch user-facing surface area.
 
-**Scope:** ~2–3 focused sessions. Zod migration is mechanical but
-touches many files. Better Auth wiring is ~300 lines.
+**Scope:** TASK-10.1a was ~1 session (Zod 4 was less breaking than
+feared). TASK-10.1b is ~2–3 sessions for the Better Auth wiring
+(~300 lines of code + new migration + ~50 integration tests updating
+their auth fixtures).
 
 ---
 
@@ -227,14 +233,16 @@ sessions. Largest single task in the cleanup list.
 
 ## Summary
 
-| Task      | Title                         | Scope    | Blocks                        |
-| --------- | ----------------------------- | -------- | ----------------------------- |
-| TASK-10.1 | Better Auth + Zod 4 migration | 2–3 days | almost everything user-facing |
-| TASK-14.1 | Audit chain backfill          | 1 day    | compliance                    |
-| TASK-14.2 | Console create-row UI         | 1 day    | demo completeness             |
-| TASK-14.3 | Grafana Cloud OTLP            | 1 day    | production readiness          |
-| TASK-14.4 | Playwright E2E                | 1–2 days | UI regressions                |
-| TASK-14.5 | Terraform + ECS deploy        | 3–5 days | pilot launch                  |
+| Task       | Title                               | Scope    | Blocks                        |
+| ---------- | ----------------------------------- | -------- | ----------------------------- |
+| TASK-10.1a | Zod 3 → Zod 4 migration ✅ **done** | 1 day    | unblocked 10.1b               |
+| TASK-10.1b | Better Auth wiring                  | 2–3 days | almost everything user-facing |
+| TASK-14.1  | Audit chain backfill                | 1 day    | compliance                    |
+| TASK-14.2  | Console create-row UI               | 1 day    | demo completeness             |
+| TASK-14.3  | Grafana Cloud OTLP                  | 1 day    | production readiness          |
+| TASK-14.4  | Playwright E2E                      | 1–2 days | UI regressions                |
+| TASK-14.5  | Terraform + ECS deploy              | 3–5 days | pilot launch                  |
 
-**Total:** ~2 weeks of engineering at steady pace, before Phase 2
-work begins.
+**Remaining:** ~2 weeks of engineering at steady pace, before Phase 2
+work begins. (TASK-10.1a landed ahead of schedule — Zod 4 was less
+breaking than feared.)

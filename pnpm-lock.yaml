@@ -55,8 +55,8 @@ catalogs:
       specifier: 3.1.1
       version: 3.1.1
     zod:
-      specifier: 3.24.2
-      version: 3.24.2
+      specifier: 4.3.6
+      version: 4.3.6
 
 importers:
 
@@ -120,8 +120,8 @@ importers:
   apps/api:
     dependencies:
       '@asteasolutions/zod-to-openapi':
-        specifier: 7.3.0
-        version: 7.3.0(zod@3.24.2)
+        specifier: 8.5.0
+        version: 8.5.0(zod@4.3.6)
       '@erp/change-set':
         specifier: workspace:*
         version: link:../../packages/change-set
@@ -163,7 +163,7 @@ importers:
         version: 9.6.0
       zod:
         specifier: 'catalog:'
-        version: 3.24.2
+        version: 4.3.6
     devDependencies:
       '@erp/config':
         specifier: workspace:*
@@ -245,8 +245,8 @@ importers:
   apps/kernel:
     dependencies:
       '@asteasolutions/zod-to-openapi':
-        specifier: 7.3.0
-        version: 7.3.0(zod@3.24.2)
+        specifier: 8.5.0
+        version: 8.5.0(zod@4.3.6)
       '@erp/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -282,7 +282,7 @@ importers:
         version: 9.6.0
       zod:
         specifier: 'catalog:'
-        version: 3.24.2
+        version: 4.3.6
     devDependencies:
       '@erp/config':
         specifier: workspace:*
@@ -356,7 +356,7 @@ importers:
         version: link:../core
       zod:
         specifier: 'catalog:'
-        version: 3.24.2
+        version: 4.3.6
     devDependencies:
       '@erp/config':
         specifier: workspace:*
@@ -377,7 +377,7 @@ importers:
     dependencies:
       zod:
         specifier: 'catalog:'
-        version: 3.24.2
+        version: 4.3.6
     devDependencies:
       '@erp/config':
         specifier: workspace:*
@@ -492,7 +492,7 @@ importers:
         version: link:../metadata
       zod:
         specifier: 'catalog:'
-        version: 3.24.2
+        version: 4.3.6
     devDependencies:
       '@erp/config':
         specifier: workspace:*
@@ -583,10 +583,10 @@ packages:
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
 
-  '@asteasolutions/zod-to-openapi@7.3.0':
-    resolution: {integrity: sha512-7tE/r1gXwMIvGnXVUdIqUhCU1RevEFC4Jk6Bussa0fk1ecbnnINkZzj1EOAJyE/M3AI25DnHT/zKQL1/FPFi8Q==}
+  '@asteasolutions/zod-to-openapi@8.5.0':
+    resolution: {integrity: sha512-SABbKiObg5dLRiTFnqiW1WWwGcg1BJfmHtT2asIBnBHg6Smy/Ms2KHc650+JI4Hw7lSkdiNebEGXpwoxfben8Q==}
     peerDependencies:
-      zod: ^3.20.2
+      zod: ^4.0.0
 
   '@babel/helper-string-parser@7.27.1':
     resolution: {integrity: sha512-qMlSxKbpRlAridDExk92nSobyDdpPijUq2DW6oDnUqd0iOGxmQjyqhMIihI9+zv4LPyZdRje2cavWPbCbWm3eA==}
@@ -3400,8 +3400,8 @@ packages:
     resolution: {integrity: sha512-zK7YHHz4ZXpW89AHXUPbQVGKI7uvkd3hzusTdotCg1UxyaVtg0zFJSTfW/Dq5f7OBBVnq6cZIaC8Ti4hb6dtCA==}
     engines: {node: '>= 14'}
 
-  zod@3.24.2:
-    resolution: {integrity: sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==}
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
 snapshots:
 
@@ -3412,10 +3412,10 @@ snapshots:
       '@jridgewell/gen-mapping': 0.3.13
       '@jridgewell/trace-mapping': 0.3.31
 
-  '@asteasolutions/zod-to-openapi@7.3.0(zod@3.24.2)':
+  '@asteasolutions/zod-to-openapi@8.5.0(zod@4.3.6)':
     dependencies:
       openapi3-ts: 4.5.0
-      zod: 3.24.2
+      zod: 4.3.6
 
   '@babel/helper-string-parser@7.27.1': {}
 
@@ -6437,4 +6437,4 @@ snapshots:
       compress-commons: 6.0.2
       readable-stream: 4.7.0
 
-  zod@3.24.2: {}
+  zod@4.3.6: {}

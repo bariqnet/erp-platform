@@ -374,7 +374,7 @@ describe("GET /v1/:entity/:id", () => {
     await seedBaselineMetadata();
     const res = await handle.app.inject({
       method: "GET",
-      url: `/v1/${ENTITY}/11111111-1111-1111-1111-111111111111`,
+      url: `/v1/${ENTITY}/f47ac10b-58cc-4372-a567-0e02b2c3d479`,
       headers: ADMIN_HEADERS,
     });
     expect(res.statusCode).toBe(404);
@@ -434,7 +434,7 @@ describe("PATCH /v1/:entity/:id", () => {
     await seedBaselineMetadata();
     const res = await handle.app.inject({
       method: "PATCH",
-      url: `/v1/${ENTITY}/22222222-2222-2222-2222-222222222222`,
+      url: `/v1/${ENTITY}/3b7e6a4b-8e3f-4a0b-9c1e-5f4d2a7b9c0e`,
       headers: ADMIN_HEADERS,
       payload: { phone: "+9647700000000" },
     });

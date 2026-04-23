@@ -18,7 +18,7 @@ import { randomUUID } from "node:crypto";
 import {
   buildChangeSetEvent,
   CHANGE_SET_EVENT_TYPES,
-  OperationsSchema,
+  OperationSchema,
   transition,
   type Action,
   type ChangeSetEventPayload,
@@ -133,7 +133,13 @@ export class ChangeSetRepository extends TenantRepository {
         });
       }
       // Validate every operation against its Zod schema before persisting.
-      const validated = OperationsSchema.parse([...row.staged_operations, ...params.operations]);
+      // Item-by-item parse retains the discriminated Operation type at
+      // the consumer side (Zod 4's array-of-discriminatedUnion inference
+      // widens to unknown[] at .d.ts boundaries; parsing one-by-one
+      // keeps each element narrow).
+      const validated: Operation[] = [...row.staged_operations, ...params.operations].map((o) =>
+        OperationSchema.parse(o),
+      );
 
       await trx
         .updateTable("metadata.meta_change_set")
@@ -254,7 +260,12 @@ export class ChangeSetRepository extends TenantRepository {
     if (lock) q = q.forUpdate();
     const r = await q.executeTakeFirst();
     if (!r) return null;
-    const ops = OperationsSchema.parse(r.staged_operations ?? []);
+    // Zod 4's discriminatedUnion-inside-array loses its discriminated
+    // inference at consumer boundaries (the d.ts resolves to unknown[]).
+    // Parse item-by-item against the single-operation schema so each
+    // entry comes out as Operation (the discriminated type).
+    const raw: readonly unknown[] = Array.isArray(r.staged_operations) ? r.staged_operations : [];
+    const ops: Operation[] = raw.map((o) => OperationSchema.parse(o));
     return {
       ...r,
       staged_operations: ops,

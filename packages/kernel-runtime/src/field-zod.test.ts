@@ -94,7 +94,9 @@ describe("zodFromField", () => {
       required: true,
       target: "ent.customer",
     });
-    expect(s.safeParse("11111111-1111-1111-1111-111111111111").success).toBe(true);
+    // Zod 4's .uuid() is stricter than v3 — variant bits must match
+    // RFC 4122. Use a real v4 UUID for the positive case.
+    expect(s.safeParse("f47ac10b-58cc-4372-a567-0e02b2c3d479").success).toBe(true);
     expect(s.safeParse("not-a-uuid").success).toBe(false);
   });
 

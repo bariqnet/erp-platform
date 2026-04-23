@@ -53,8 +53,16 @@ export const OperationSchema = z.discriminatedUnion("op", [
   TombstoneOperationSchema,
 ]);
 
-export type Operation = z.infer<typeof OperationSchema>;
+// Zod 4's inferred type for `z.discriminatedUnion(...)` widens to
+// `unknown` at `.d.ts` boundaries — the emitted declaration drops the
+// variants from the generic shape and tsc can't recover them at the
+// consumer side. Declaring the Operation type explicitly here
+// preserves the narrow `{ op: "upsert"; ... } | { op: "tombstone"; ...}`
+// shape for every downstream consumer (@erp/db, apps/api). The
+// runtime schema (OperationSchema) still validates the same
+// discriminated shape — this is a type-layer workaround only.
+export type Operation = UpsertOperation | TombstoneOperation;
 
 export const OperationsSchema = z.array(OperationSchema);
 
-export type Operations = z.infer<typeof OperationsSchema>;
+export type Operations = readonly Operation[];

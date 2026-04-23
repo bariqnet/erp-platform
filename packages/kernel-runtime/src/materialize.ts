@@ -16,7 +16,7 @@
 
 import { EntityBodySchema, type EntityBody, type Field } from "@erp/core";
 import { type ResolvedObject } from "@erp/metadata";
-import { z, type ZodObject, type ZodRawShape } from "zod";
+import { z, type ZodObject, type ZodRawShape, type ZodTypeAny } from "zod";
 
 import { zodFromField } from "./field-zod.js";
 
@@ -63,8 +63,11 @@ export function materialize(resolved: ResolvedObject): MaterializedEntity {
  */
 export function materializeEntity(entity: EntityBody): MaterializedEntity {
   const fieldsByName = new Map<string, Field>();
-  const createShape: ZodRawShape = {};
-  const patchShape: ZodRawShape = {};
+  // Zod v4's ZodRawShape is a readonly index type, so we build via a
+  // plain mutable object and assert at the end — same pattern the
+  // upstream z.object() examples use.
+  const createShape: Record<string, ZodTypeAny> = {};
+  const patchShape: Record<string, ZodTypeAny> = {};
 
   for (const field of entity.fields) {
     fieldsByName.set(field.name, field);

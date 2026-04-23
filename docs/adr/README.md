@@ -51,11 +51,14 @@ this imply?
 
 ## Index
 
-| #                                            | Title                                          | Status   | Task      |
-| -------------------------------------------- | ---------------------------------------------- | -------- | --------- |
-| [0001](./0001-metadata-schema.md)            | Metadata Schema Shape                          | Accepted | TASK-03   |
-| [0002](./0002-better-auth-zod-4-deferral.md) | Better Auth Integration Deferred Pending Zod 4 | Accepted | TASK-10.1 |
+| #                                            | Title                                          | Status                        | Task       |
+| -------------------------------------------- | ---------------------------------------------- | ----------------------------- | ---------- |
+| [0001](./0001-metadata-schema.md)            | Metadata Schema Shape                          | Accepted                      | TASK-03    |
+| [0002](./0002-better-auth-zod-4-deferral.md) | Better Auth Integration Deferred Pending Zod 4 | Partly superseded by ADR-0003 | TASK-10.1  |
+| [0003](./0003-zod-4-migration.md)            | Zod 4 Migration                                | Accepted                      | TASK-10.1a |
 
 ADR-0001 lands with TASK-03 per the task's "Done when" list.
 ADR-0002 records why TASK-10 shipped with placeholder auth and pins
-the Zod 4 migration path for TASK-10.1.
+the Zod 4 migration path for TASK-10.1. ADR-0003 records the
+completed Zod 4 migration half of TASK-10.1 (TASK-10.1a); Better
+Auth wiring (TASK-10.1b) is the remaining work.
