@@ -1,8 +1,16 @@
 // apps/kernel entry point.
 //
-// Production starts here: build the kernel, listen on KERNEL_PORT
-// (default 3100), install graceful-shutdown handlers, log the listen
-// address. Tests import buildKernel directly and don't run this file.
+// Production starts here: register the OTel SDK (so startup spans +
+// cache-invalidator ticks are captured), build the kernel, listen on
+// KERNEL_PORT (default 3100), install graceful-shutdown handlers, log
+// the listen address. Tests import buildKernel directly and don't run
+// this file.
+//
+// OTel SDK registration is a no-op when GRAFANA_CLOUD_OTLP_ENDPOINT is
+// absent; dev keeps running on the @opentelemetry/api NoOp tracer
+// (CLAUDE.md §2, RFC §14).
+
+import { registerOtelSdkFromEnv } from "@erp/telemetry";
 
 import { buildKernel, type KernelHandle } from "./server.js";
 
@@ -21,6 +29,8 @@ const PORT = Number.parseInt(process.env.KERNEL_PORT ?? "3100", 10);
 const HOST = process.env.HOST ?? "0.0.0.0";
 
 async function main(): Promise<void> {
+  const otel = registerOtelSdkFromEnv("erp-kernel");
+
   const handle: KernelHandle = await buildKernel({
     // REDIS_URL is optional — if unset, L2 caching is skipped and
     // every miss resolves through Postgres. That's the expected dev
@@ -32,10 +42,14 @@ async function main(): Promise<void> {
 
   try {
     const address = await handle.app.listen({ port: PORT, host: HOST });
-    handle.logger.info({ address, port: PORT, host: HOST }, "erp-kernel: listening");
+    handle.logger.info(
+      { address, port: PORT, host: HOST, otel_active: otel.active },
+      "erp-kernel: listening",
+    );
   } catch (err) {
     handle.logger.error({ err }, "erp-kernel: failed to listen");
     await handle.close();
+    await otel.shutdown();
     process.exit(1);
   }
 
@@ -43,6 +57,7 @@ async function main(): Promise<void> {
     handle.logger.info({ signal }, "erp-kernel: shutting down");
     try {
       await handle.close();
+      await otel.shutdown();
       process.exit(0);
     } catch (err) {
       handle.logger.error({ err }, "erp-kernel: error during shutdown");

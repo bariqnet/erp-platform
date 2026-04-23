@@ -14,7 +14,7 @@
 
 import { createDatabase, type Database } from "@erp/db";
 import { OutboxBus, OutboxPump } from "@erp/events";
-import { createLogger } from "@erp/telemetry";
+import { createLogger, registerOtelSdkFromEnv } from "@erp/telemetry";
 import { type Kysely } from "kysely";
 
 export interface WorkerConfig {
@@ -57,21 +57,25 @@ export function createWorker(config: WorkerConfig): Worker {
 // ── Script entry (dev + production) ──────────────────────────────
 
 async function main(): Promise<void> {
+  const otel = registerOtelSdkFromEnv("erp-worker");
+
   const logger = createLogger({ service: "erp-worker" });
   const databaseUrl = process.env.DATABASE_URL;
   if (databaseUrl === undefined || databaseUrl === "") {
     logger.error("erp-worker: DATABASE_URL is required");
+    await otel.shutdown();
     process.exit(2);
   }
 
   const worker = createWorker({ databaseUrl });
   worker.start();
-  logger.info("erp-worker: outbox pump started");
+  logger.info({ otel_active: otel.active }, "erp-worker: outbox pump started");
 
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "erp-worker: shutting down");
     try {
       await worker.stop();
+      await otel.shutdown();
       process.exit(0);
     } catch (err) {
       logger.error({ err }, "erp-worker: error during shutdown");

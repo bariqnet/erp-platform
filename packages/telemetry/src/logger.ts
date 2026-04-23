@@ -7,7 +7,14 @@
 // `console.log` is forbidden outside `scripts/` (CLAUDE.md §15 +
 // scripts/verify.ts invariant #4); every production code path that
 // wants to log goes through this logger.
+//
+// Trace correlation (TASK-14.3): every log line carries `trace_id` and
+// `span_id` from the active OTel context when one is present. Requests
+// coming in via the telemetry plugin also have `trace_id` pre-set on
+// the child logger bindings — that stays correct; the mixin only adds
+// fields not already set.
 
+import { context, trace as otelTrace } from "@opentelemetry/api";
 import { pino, type Logger, type LoggerOptions } from "pino";
 
 export interface CreateLoggerInput {
@@ -50,6 +57,7 @@ export function createLogger(input: CreateLoggerInput): Logger {
       paths: [...REDACT_PATHS],
       censor: "[redacted]",
     },
+    mixin: otelContextMixin,
   };
 
   if (pretty) {
@@ -65,6 +73,32 @@ export function createLogger(input: CreateLoggerInput): Logger {
   }
 
   return pino(options);
+}
+
+/**
+ * Pino mixin: inject `trace_id` / `span_id` from the active OTel span
+ * into every log line. No-op when no span is active (startup code,
+ * worker idle ticks) — the NoOp tracer that @opentelemetry/api
+ * returns by default yields an invalid SpanContext which we filter.
+ *
+ * Exported for tests.
+ */
+export function otelContextMixin(): Record<string, string> {
+  const span = otelTrace.getSpan(context.active());
+  if (span === undefined) return {};
+  const ctx = span.spanContext();
+  // OTel marks an unset / sampled-out context with the magic zero
+  // ids ("0".repeat(32)). Filter those so we don't litter logs with
+  // meaningless zero traces.
+  if (
+    ctx.traceId === "" ||
+    ctx.traceId === "00000000000000000000000000000000" ||
+    ctx.spanId === "" ||
+    ctx.spanId === "0000000000000000"
+  ) {
+    return {};
+  }
+  return { trace_id: ctx.traceId, span_id: ctx.spanId };
 }
 
 /**

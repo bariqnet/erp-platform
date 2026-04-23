@@ -1,8 +1,11 @@
-// OpenTelemetry tracer factory. Phase 1 ships the API surface only —
-// `@opentelemetry/api` returns a NoOp tracer unless an SDK is
-// registered. Span call sites exist from day one; when the SDK + OTLP
-// exporter land (future TASK, Grafana Cloud endpoint per CLAUDE.md §2),
-// every trace lights up automatically.
+// OpenTelemetry tracer factory. Services always create tracers through
+// this function — `@opentelemetry/api` returns a NoOp tracer unless an
+// SDK is registered. In dev + tests we run against that NoOp; in
+// production each app's src/index.ts calls `registerOtelSdkFromEnv()`
+// (see ./otel-sdk.ts) which installs the OTLP/HTTP exporter pointed at
+// Grafana Cloud (CLAUDE.md §2, RFC §14). Once the SDK is live, every
+// span emitted through createTracer() ships automatically — there are
+// no other changes call sites need to make.
 //
 // Usage:
 //

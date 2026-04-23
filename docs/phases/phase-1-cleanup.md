@@ -107,7 +107,7 @@ continuous chain. Close the gap.
 - [x] ~~Integration test asserts `verifyChain(TENANT)` returns `null`
       across the unified history after the backfill runs.~~
       (6 integration tests in `apps/api/test/integration/audit-
-    backfill.integration.test.ts`.)
+backfill.integration.test.ts`.)
 
 **Dependencies:** none; independent of TASK-10.1.
 
@@ -144,10 +144,10 @@ TASK-10.1 landing first.
 
 ---
 
-## TASK-14.3 — Grafana Cloud OTLP exporter wiring
+## TASK-14.3 — Grafana Cloud OTLP exporter wiring ✅ DONE
 
 **Goal:** every service already creates spans via
-`@erp/telemetry.createTracer()` but the exporter is the OTel default
+`@erp/telemetry.createTracer()` but the exporter was the OTel default
 NoOp. Register an OTLP HTTP exporter pointing at Grafana Cloud in
 production, keep NoOp in dev + tests.
 
@@ -155,27 +155,32 @@ production, keep NoOp in dev + tests.
 
 **Done when:**
 
-- [ ] `packages/telemetry/src/otel-sdk.ts` exports
+- [x] ~~`packages/telemetry/src/otel-sdk.ts` exports
       `registerOtelSdk({serviceName, endpoint, headers})` that
       installs `NodeSDK` with the OTLP/HTTP trace exporter +
-      Prometheus metric reader or OTLP metric exporter.
-- [ ] `apps/api`, `apps/kernel`, `apps/worker` call it in
+      OTLP metric exporter.~~ (Plus env-gated
+      `registerOtelSdkFromEnv(serviceName)` for the apps to use.)
+- [x] ~~`apps/api`, `apps/kernel`, `apps/worker` call it in
       `src/index.ts` **before** `buildServer/buildKernel/createWorker`
       (so spans from startup are captured), guarded by
-      `GRAFANA_CLOUD_OTLP_ENDPOINT !== undefined`.
-- [ ] `.env.example` gets the two Grafana variables. Secrets go in
-      `.env` (gitignored), never in `.env.example`.
-- [ ] Structured log lines carry `trace_id` / `span_id` by reading
+      `GRAFANA_CLOUD_OTLP_ENDPOINT !== undefined`.~~
+- [x] ~~`.env.example` gets the two Grafana variables. Secrets go in
+      `.env` (gitignored), never in `.env.example`.~~
+- [x] ~~Structured log lines carry `trace_id` / `span_id` by reading
       the active OTel context — they already carry `trace_id` from the
-      W3C header; this adds span_id.
-- [ ] Integration test: spin up an in-memory OTLP collector (e.g.
+      W3C header; this adds span_id.~~ (New `otelContextMixin` wired
+      into every `createLogger()` instance.)
+- [x] ~~Integration test: spin up an in-memory OTLP collector (e.g.
       `@opentelemetry/exporter-trace-otlp-http` pointed at a local
       Fastify mock), make one request, assert the collector received
-      spans with the expected `service.name` and trace-context.
+      spans with the expected `service.name` and trace-context.~~
+      (`test/otel-sdk.integration.test.ts` — Fastify-backed mock with
+      JSON payload assertions on service.name, scope name, span name,
+      and attributes.)
 
 **Dependencies:** none.
 
-**Scope:** ~250 lines; 1 session.
+**Scope:** ~300 lines including tests; 1 session. (Shipped.)
 
 ---
 
@@ -261,7 +266,7 @@ sessions. Largest single task in the cleanup list.
 | TASK-10.1b.1 | Better Auth wiring (integration pass)          | 5–7 days | almost everything user-facing |
 | TASK-14.1    | Audit chain backfill ✅ **done**               | 1 day    | —                             |
 | TASK-14.2    | Console create-row UI ✅ **done**              | 1 day    | —                             |
-| TASK-14.3    | Grafana Cloud OTLP                             | 1 day    | production readiness          |
+| TASK-14.3    | Grafana Cloud OTLP ✅ **done**                 | 1 day    | —                             |
 | TASK-14.4    | Playwright E2E                                 | 1–2 days | UI regressions                |
 | TASK-14.5    | Terraform + ECS deploy                         | 3–5 days | pilot launch                  |
 
