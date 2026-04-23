@@ -493,6 +493,25 @@ Never invent a decision on a genuinely new architectural question without docume
 
 Ordered sequentially. Do not skip ahead.
 
+> **Phase 1 status:** ✅ complete. TASK-01 through TASK-13 shipped to
+> `main`. Phase 2 onward lives in [`docs/phases/`](./docs/phases/):
+>
+> - [`phase-1-cleanup.md`](./docs/phases/phase-1-cleanup.md) — six
+>   deferred Phase-1 items (Better Auth, audit backfill, create-row
+>   UI, Grafana OTLP, Playwright E2E, Terraform + ECS).
+> - [`phase-2-tasks.md`](./docs/phases/phase-2-tasks.md) — 11 PR-sized
+>   tasks (TASK-15 … TASK-25) covering RFC §16.2 (Templates &
+>   Packages).
+> - [`phase-3-tasks.md`](./docs/phases/phase-3-tasks.md) — 8 epics
+>   (Configuration Studio GA, L4 extensions, AI Specialist v1).
+>   Decompose into PR-sized tasks when Phase 2 wraps.
+> - [`phase-4-tasks.md`](./docs/phases/phase-4-tasks.md) — 6 epics
+>   (multi-region, Kubernetes, compliance packs, Wave 2 templates).
+>   Decompose when Phase 3 wraps.
+>
+> Phase 1 historical queue follows. Do not start work directly from
+> this list — it is the record of what shipped, not a live queue.
+
 ### TASK-01 — Monorepo Scaffold
 **Goal:** empty monorepo with tooling wired up; one passing smoke test per package.
 **Done when:**
