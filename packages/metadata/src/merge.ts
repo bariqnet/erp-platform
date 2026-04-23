@@ -80,9 +80,7 @@ export function applyMergeListByKey(
   for (const item of overlay) {
     const key = item[keyField];
     if (key === undefined) {
-      throw new Error(
-        `applyMergeListByKey: overlay item is missing key field "${keyField}"`,
-      );
+      throw new Error(`applyMergeListByKey: overlay item is missing key field "${keyField}"`);
     }
     const idx = out.findIndex((b) => b[keyField] === key);
     if (idx === -1) {
@@ -107,11 +105,7 @@ export function applyMergeListByKey(
  * mis-authored candidate — not a domain failure, and per CLAUDE.md §5
  * those `throw`.
  */
-export function merge(
-  base: unknown,
-  overlay: unknown,
-  candidate: LayerCandidate,
-): unknown {
+export function merge(base: unknown, overlay: unknown, candidate: LayerCandidate): unknown {
   const strategy = candidate.merge_strategy ?? "replace";
 
   switch (strategy) {

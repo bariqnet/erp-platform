@@ -1,4 +1,3 @@
-import type { LayerCandidate } from "@erp/core";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -8,6 +7,8 @@ import {
   applyReplace,
   merge,
 } from "./merge.js";
+
+import type { LayerCandidate } from "@erp/core";
 
 function candidate(partial: Partial<LayerCandidate> = {}): LayerCandidate {
   return {
@@ -29,8 +30,9 @@ describe("applyReplace", () => {
   });
 
   it("deep-clones the overlay so later mutation does not leak", () => {
-    const overlay = { a: { b: 1 } };
-    const out = applyReplace({ x: 0 }, overlay) as { a: { b: number } };
+    const overlay: { a: { b: number } } = { a: { b: 1 } };
+    const base: { a: { b: number } } = { a: { b: 0 } };
+    const out = applyReplace(base, overlay);
     overlay.a.b = 999;
     expect(out.a.b).toBe(1);
   });
@@ -116,9 +118,9 @@ describe("applyMergeListByKey", () => {
   });
 
   it("throws when an overlay item is missing the key field", () => {
-    expect(() =>
-      applyMergeListByKey(baseFields, [{ type: "string" }], "name"),
-    ).toThrow(/missing key field "name"/);
+    expect(() => applyMergeListByKey(baseFields, [{ type: "string" }], "name")).toThrow(
+      /missing key field "name"/,
+    );
   });
 
   it("throws when keyField is the empty string", () => {
@@ -143,11 +145,7 @@ describe("merge dispatcher", () => {
   });
 
   it("applies replace explicitly", () => {
-    const out = merge(
-      { a: 1 },
-      { b: 2 },
-      candidate({ merge_strategy: "replace" }),
-    );
+    const out = merge({ a: 1 }, { b: 2 }, candidate({ merge_strategy: "replace" }));
     expect(out).toEqual({ b: 2 });
   });
 
@@ -161,9 +159,9 @@ describe("merge dispatcher", () => {
   });
 
   it("throws when merge_object is given a non-object", () => {
-    expect(() =>
-      merge({ a: 1 }, [1, 2], candidate({ merge_strategy: "merge_object" })),
-    ).toThrow(/plain objects/);
+    expect(() => merge({ a: 1 }, [1, 2], candidate({ merge_strategy: "merge_object" }))).toThrow(
+      /plain objects/,
+    );
   });
 
   it("applies append", () => {
@@ -172,9 +170,9 @@ describe("merge dispatcher", () => {
   });
 
   it("throws when append is given a non-array", () => {
-    expect(() =>
-      merge({ a: 1 }, [3, 4], candidate({ merge_strategy: "append" })),
-    ).toThrow(/arrays/);
+    expect(() => merge({ a: 1 }, [3, 4], candidate({ merge_strategy: "append" }))).toThrow(
+      /arrays/,
+    );
   });
 
   it("applies merge_list_by_key with the candidate's key_field", () => {
@@ -187,18 +185,14 @@ describe("merge dispatcher", () => {
   });
 
   it("throws when merge_list_by_key is missing key_field on the candidate", () => {
-    expect(() =>
-      merge([], [], candidate({ merge_strategy: "merge_list_by_key" })),
-    ).toThrow(/key_field/);
+    expect(() => merge([], [], candidate({ merge_strategy: "merge_list_by_key" }))).toThrow(
+      /key_field/,
+    );
   });
 
   it("throws when merge_list_by_key items are not plain objects", () => {
     expect(() =>
-      merge(
-        [1, 2],
-        [3],
-        candidate({ merge_strategy: "merge_list_by_key", key_field: "name" }),
-      ),
+      merge([1, 2], [3], candidate({ merge_strategy: "merge_list_by_key", key_field: "name" })),
     ).toThrow(/plain objects/);
   });
 });

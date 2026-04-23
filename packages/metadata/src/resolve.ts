@@ -11,10 +11,11 @@
 // provenance entry after each successful upsert step. If nothing
 // contributes, return `object_not_found`.
 
-import type { Layer, LayerCandidate, MetadataStore } from "@erp/core";
-import { Result, type Result as ResultT } from "@erp/core";
+import { Result } from "@erp/core";
 
 import { deepClone, merge } from "./merge.js";
+
+import type { Layer, MetadataStore, Result as ResultT } from "@erp/core";
 
 // ── Types ─────────────────────────────────────────────────────────────
 

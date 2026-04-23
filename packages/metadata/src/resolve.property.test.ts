@@ -10,12 +10,13 @@
 //   3. Ordered layer application — higher layers overlay lower ones;
 //      the final body reflects the last-applied upsert for each key.
 
-import fc from "fast-check";
-import type { Layer, LayerCandidate, MetadataStore } from "@erp/core";
 import { Result } from "@erp/core";
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { resolve } from "./resolve.js";
+
+import type { Layer, LayerCandidate, MetadataStore } from "@erp/core";
 
 // ── Fixture store ─────────────────────────────────────────────────────
 
@@ -147,9 +148,7 @@ describe("property: tombstone correctness", () => {
           tombstoneLayer: fc.constant(LAYERS[k]!),
           belowLayers: fc.constant(below),
           aboveLayers: fc.constant(above),
-          aboveMask: fc.tuple(
-            ...above.map(() => fc.boolean()),
-          ) as fc.Arbitrary<boolean[]>,
+          aboveMask: fc.tuple(...above.map(() => fc.boolean())) as fc.Arbitrary<boolean[]>,
         });
       })
       .map(({ tombstoneLayer, belowLayers, aboveLayers, aboveMask }) => {
@@ -227,7 +226,7 @@ describe("property: ordered layer application", () => {
     // sit above the tombstone (or all of them, if no tombstone).
     const scenario = fc.record({
       upsertLayers: fc
-        .subarray(LAYERS, { minLength: 0, maxLength: LAYERS.length })
+        .subarray([...LAYERS], { minLength: 0, maxLength: LAYERS.length })
         .map((xs) => [...new Set(xs)]),
       tombstoneAt: fc.option(
         fc.integer({ min: 0, max: LAYERS.length - 1 }).map((i) => LAYERS[i]!),
@@ -257,8 +256,7 @@ describe("property: ordered layer application", () => {
         if (tombstoneAt !== null) {
           rows.push({
             layer: tombstoneAt,
-            tenant_id:
-              tombstoneAt === "L0" || tombstoneAt === "L1" ? null : TENANT,
+            tenant_id: tombstoneAt === "L0" || tombstoneAt === "L1" ? null : TENANT,
             object_id: OBJECT_ID,
             version: 1,
             operation: "tombstone",

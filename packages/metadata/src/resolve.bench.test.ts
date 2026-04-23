@@ -9,11 +9,12 @@
 // turns a SLO into a regression test. If a future change pushes p99
 // above 0.5 ms, CI catches it.
 
-import type { Layer, LayerCandidate, MetadataStore } from "@erp/core";
 import { Result } from "@erp/core";
 import { describe, expect, it } from "vitest";
 
 import { resolve } from "./resolve.js";
+
+import type { Layer, LayerCandidate, MetadataStore } from "@erp/core";
 
 const TENANT = "t_bench";
 const OBJECT_ID = "ent.customer";
@@ -38,11 +39,7 @@ class BenchStore implements MetadataStore {
     object_id: string;
     tenant_id: string | null;
   }): Promise<LayerCandidate | null> {
-    return (
-      this.index.get(
-        `${params.layer}|${params.object_id}|${params.tenant_id ?? "*"}`,
-      ) ?? null
-    );
+    return this.index.get(`${params.layer}|${params.object_id}|${params.tenant_id ?? "*"}`) ?? null;
   }
 
   async getActiveLayers(): Promise<readonly Layer[]> {

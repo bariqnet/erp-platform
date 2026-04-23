@@ -1,8 +1,9 @@
-import type { Layer, LayerCandidate, MetadataStore } from "@erp/core";
 import { Result } from "@erp/core";
 import { describe, expect, it } from "vitest";
 
 import { resolve } from "./resolve.js";
+
+import type { Layer, LayerCandidate, MetadataStore } from "@erp/core";
 
 // ── Fixture store ─────────────────────────────────────────────────────
 
@@ -66,9 +67,7 @@ describe("resolve — single layer", () => {
     expect(Result.isOk(r)).toBe(true);
     if (r.ok) {
       expect(r.value.body).toEqual({ name: "Customer", label: { en: "Customer" } });
-      expect(r.value.provenance).toEqual([
-        { layer: "L0", version: 1, object_id: "ent.customer" },
-      ]);
+      expect(r.value.provenance).toEqual([{ layer: "L0", version: 1, object_id: "ent.customer" }]);
     }
   });
 

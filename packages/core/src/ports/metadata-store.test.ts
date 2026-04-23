@@ -43,7 +43,7 @@ describe("MetadataStore interface shape", () => {
       return this.rows.find((r) => r.layer === layer && r.object_id === object_id) ?? null;
     }
 
-    async getActiveLayers(): Promise<readonly LayerCandidate["layer"][]> {
+    async getActiveLayers(_tenant: string): Promise<readonly LayerCandidate["layer"][]> {
       return ["L0", "L2"];
     }
 
@@ -96,12 +96,7 @@ describe("MetadataStore interface shape", () => {
   });
 
   it("LayerCandidate.merge_strategy is optional and one of the four", () => {
-    const variants: MergeStrategy[] = [
-      "replace",
-      "merge_object",
-      "append",
-      "merge_list_by_key",
-    ];
+    const variants: MergeStrategy[] = ["replace", "merge_object", "append", "merge_list_by_key"];
     for (const s of variants) {
       const c: LayerCandidate = {
         layer: "L2",
