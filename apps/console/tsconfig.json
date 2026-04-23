@@ -23,7 +23,9 @@
     "lib/**/*.tsx",
     "tailwind.config.ts",
     "postcss.config.mjs",
-    "next.config.mjs"
+    "next.config.mjs",
+    "playwright.config.ts",
+    "test/e2e/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next", "dist"]
+  "exclude": ["node_modules", ".next", "dist", "test/e2e/.auth"]
 }

@@ -153,6 +153,16 @@ module.exports = {
         "no-restricted-syntax": "off",
       },
     },
+    {
+      // Playwright's globalSetup expects a file whose default export is
+      // the setup function. Allow it here (the test harness is the only
+      // consumer; runtime code continues to go through named exports).
+      files: ["**/test/**/global-setup.ts"],
+      rules: {
+        "import/no-default-export": "off",
+        "no-restricted-syntax": "off",
+      },
+    },
   ],
   ignorePatterns: [
     "dist",

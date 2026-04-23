@@ -184,7 +184,7 @@ production, keep NoOp in dev + tests.
 
 ---
 
-## TASK-14.4 — Playwright E2E smoke
+## TASK-14.4 — Playwright E2E smoke ✅ DONE
 
 **Goal:** one end-to-end scenario that clicks through the console
 against a live stack. Guards against UI regressions that unit +
@@ -194,23 +194,33 @@ integration tests can't catch.
 
 **Done when:**
 
-- [ ] `apps/console/playwright.config.ts` + `apps/console/test/e2e/`
-      directory seeded.
-- [ ] `pnpm --filter @erp/console test:e2e` runs the suite
-      (new script).
-- [ ] Scenario 1: login → list customers → open first row → PATCH
-      loyalty_tier → assert the table reflects the change.
-- [ ] Scenario 2: locale toggle flips `<html dir="rtl">` and Arabic
-      strings render.
-- [ ] CI job runs Playwright against the compose stack + migrate +
-      seed + all three services (reuses the `dev:services` path).
-- [ ] Turbo's `test:e2e` task depends on `build`.
+- [x] ~~`apps/console/playwright.config.ts` + `apps/console/test/e2e/`
+      directory seeded.~~ (Playwright 1.59.1; Chromium only; two
+      projects — `setup` logs in and saves storage state, `chromium`
+      runs scenarios with that state pre-loaded.)
+- [x] ~~`pnpm --filter @erp/console test:e2e` runs the suite
+      (new script).~~ (Plus `test:e2e:ui` for the inspector.)
+- [x] ~~Scenario 1: login → list customers → open first row → PATCH
+      loyalty_tier → assert the table reflects the change.~~
+      (Assertion hardened: reload + select value + Raw JSON panel
+      both confirm the PATCH persisted.)
+- [x] ~~Scenario 2: locale toggle flips `<html dir="rtl">` and Arabic
+      strings render.~~ (Checks `dir`, `lang`, and the Arabic label
+      for "Entities"; flips back to LTR at the end so runs are
+      idempotent.)
+- [x] ~~CI job runs Playwright against the compose stack + migrate +
+      seed + all three services (reuses the `dev:services` path).~~
+      (`.github/workflows/e2e.yml` — Postgres 16 + Redis 7 via
+      service containers, uploads HTML report + dev-services log on
+      failure.)
+- [x] ~~Turbo's `test:e2e` task depends on `build`.~~ (Already
+      configured in `turbo.json`.)
 
-**Dependencies:** none, but leans on TASK-10.1 so the login step is
-against real auth.
+**Dependencies:** none, but the login step still uses the dev cookie
+(TASK-10.1b.1 will swap it for Better Auth).
 
-**Scope:** ~400 lines (config + 2 scenarios + fixture helpers); 1–2
-sessions.
+**Scope:** ~350 lines (config + global-setup + setup + 2 scenarios +
+CI workflow); 1 session. (Shipped.)
 
 ---
 
@@ -267,7 +277,7 @@ sessions. Largest single task in the cleanup list.
 | TASK-14.1    | Audit chain backfill ✅ **done**               | 1 day    | —                             |
 | TASK-14.2    | Console create-row UI ✅ **done**              | 1 day    | —                             |
 | TASK-14.3    | Grafana Cloud OTLP ✅ **done**                 | 1 day    | —                             |
-| TASK-14.4    | Playwright E2E                                 | 1–2 days | UI regressions                |
+| TASK-14.4    | Playwright E2E ✅ **done**                     | 1 day    | —                             |
 | TASK-14.5    | Terraform + ECS deploy                         | 3–5 days | pilot launch                  |
 
 **Remaining:** ~2 weeks of engineering at steady pace, before Phase 2

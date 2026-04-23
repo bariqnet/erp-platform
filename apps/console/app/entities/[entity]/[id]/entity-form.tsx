@@ -139,6 +139,7 @@ function FieldInput({
       <div>
         {label}
         <select
+          name={field.name}
           className={common}
           value={typeof value === "string" ? value : ""}
           onChange={(e) => onChange(field.name, e.target.value || undefined)}
@@ -160,6 +161,7 @@ function FieldInput({
         {label}
         <input
           type="number"
+          name={field.name}
           step={field.type === "integer" || field.type === "money" ? 1 : "any"}
           className={common}
           value={typeof value === "number" ? value : ""}
@@ -176,6 +178,7 @@ function FieldInput({
       <div>
         {label}
         <select
+          name={field.name}
           className={common}
           value={value === true ? "true" : value === false ? "false" : ""}
           onChange={(e) =>
@@ -206,6 +209,7 @@ function FieldInput({
               </span>
               <input
                 type="text"
+                name={`${field.name}.${loc}`}
                 className={common}
                 value={typeof obj[loc] === "string" ? String(obj[loc]) : ""}
                 onChange={(e) => {
@@ -236,6 +240,7 @@ function FieldInput({
         type={
           field.type === "date" ? "date" : field.type === "datetime" ? "datetime-local" : "text"
         }
+        name={field.name}
         className={common}
         value={typeof value === "string" ? value : ""}
         onChange={(e) => onChange(field.name, e.target.value === "" ? undefined : e.target.value)}
