@@ -73,6 +73,12 @@ export default async function EntitiesListPage(props: PageProps): Promise<JSX.El
             {entityId}{" "}
             <span className="text-sm font-normal text-slate-500">· {t(locale, "list_title")}</span>
           </h1>
+          <Link
+            href={{ pathname: `/entities/${encodeURIComponent(entityId)}/new` }}
+            className="rounded bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            {t(locale, "list_new")}
+          </Link>
         </div>
 
         {loadError !== null ? (
@@ -80,9 +86,15 @@ export default async function EntitiesListPage(props: PageProps): Promise<JSX.El
             {loadError}
           </div>
         ) : rows.length === 0 ? (
-          <p className="rounded-lg bg-white p-6 text-center text-sm text-slate-500 shadow-sm">
-            {t(locale, "list_none")}
-          </p>
+          <div className="rounded-lg bg-white p-6 text-center shadow-sm">
+            <p className="text-sm text-slate-500">{t(locale, "list_none")}</p>
+            <Link
+              href={{ pathname: `/entities/${encodeURIComponent(entityId)}/new` }}
+              className="mt-3 inline-block rounded bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              {t(locale, "list_new")}
+            </Link>
+          </div>
         ) : (
           <RowTable rows={rows} entityId={entityId} locale={locale} />
         )}

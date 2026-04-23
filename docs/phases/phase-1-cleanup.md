@@ -112,7 +112,7 @@ continuous chain. Close the gap.
 
 ---
 
-## TASK-14.2 — Runtime "Create row" UI in the console
+## TASK-14.2 — Runtime "Create row" UI in the console ✅ DONE
 
 **Goal:** the console's Entities Explorer only PATCHes and DELETEs.
 Add a "+ New" action that renders the derived `createValidator` shape
@@ -122,21 +122,22 @@ so admins can populate seeded entities through the UI.
 
 **Done when:**
 
-- [ ] `apps/console/app/entities/[entity]/new/page.tsx` renders the
+- [x] ~~`apps/console/app/entities/[entity]/new/page.tsx` renders the
       same `EntityForm` bound to an empty body with `required` fields
-      visually marked.
-- [ ] Submit POSTs to `/v1/:entity` via a new
-      `createRowAction(entityId, formData)` Server Action.
-- [ ] On success, redirects to `/entities/:entity/:newRowId`.
-- [ ] 400 validation errors surface inline per-field using the
-      problem+json `errors[]` array.
-- [ ] "New" link in the list page header (top-right).
+      visually marked.~~
+- [x] ~~Submit POSTs to `/v1/:entity` via a new
+      `createRowAction(entityId, formData)` Server Action.~~
+- [x] ~~On success, redirects to `/entities/:entity/:newRowId`.~~
+- [x] ~~400 validation errors surface inline per-field using the
+      problem+json `errors[]` array.~~
+- [x] ~~"New" link in the list page header (top-right).~~
 - [ ] Playwright smoke test (see TASK-14.4) covers create → list.
+      (Left for TASK-14.4 — Playwright harness doesn't exist yet.)
 
 **Dependencies:** works against the placeholder auth; benefits from
 TASK-10.1 landing first.
 
-**Scope:** ~200 lines; 1 session.
+**Scope:** ~200 lines; 1 session. (Shipped.)
 
 ---
 
@@ -256,7 +257,7 @@ sessions. Largest single task in the cleanup list.
 | TASK-10.1b   | Better Auth schema layer ✅ **partial** landed | 1 day    | tables exist, no wiring yet   |
 | TASK-10.1b.1 | Better Auth wiring (integration pass)          | 5–7 days | almost everything user-facing |
 | TASK-14.1    | Audit chain backfill                           | 1 day    | compliance                    |
-| TASK-14.2    | Console create-row UI                          | 1 day    | demo completeness             |
+| TASK-14.2    | Console create-row UI ✅ **done**              | 1 day    | —                             |
 | TASK-14.3    | Grafana Cloud OTLP                             | 1 day    | production readiness          |
 | TASK-14.4    | Playwright E2E                                 | 1–2 days | UI regressions                |
 | TASK-14.5    | Terraform + ECS deploy                         | 3–5 days | pilot launch                  |

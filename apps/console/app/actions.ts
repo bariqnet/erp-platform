@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { patchEntityRow, deleteEntityRow, ApiError } from "../lib/api";
+import { patchEntityRow, deleteEntityRow, createEntityRow, ApiError } from "../lib/api";
 import { clearSessionCookie, readSession, writeSessionCookie, type Session } from "../lib/session";
 
 export interface LoginFormState {
@@ -91,4 +91,62 @@ export async function deleteRowAction(entityId: string, rowId: string): Promise<
   if (session === null) redirect("/login");
   await deleteEntityRow(session, entityId, rowId);
   redirect(`/entities/${entityId}`);
+}
+
+export interface CreateRowState {
+  readonly error: string | null;
+  /** Per-field validation errors surfaced from the API's problem+json errors[]. */
+  readonly fieldErrors: Readonly<Record<string, string>>;
+}
+
+export async function createRowAction(
+  entityId: string,
+  _prev: CreateRowState,
+  formData: FormData,
+): Promise<CreateRowState> {
+  const session = readSession();
+  if (session === null) redirect("/login");
+
+  // Same hidden __body__ JSON idiom as patchRowAction — the client
+  // EntityForm serializes every typed field into one blob so we
+  // preserve numbers, enums, localized_string objects across the
+  // Server-Action boundary.
+  const raw = String(formData.get("__body__") ?? "");
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return { error: "invalid body shape", fieldErrors: {} };
+  }
+
+  try {
+    const created = await createEntityRow(session, entityId, body);
+    redirect(`/entities/${encodeURIComponent(entityId)}/${created.row_id}`);
+  } catch (err) {
+    if (err instanceof ApiError) {
+      // apps/api's errors plugin emits problem+json with an `errors[]`
+      // array carrying { path, message } per Zod issue. Hoist those
+      // into a field → message map the form displays inline.
+      const fieldErrors: Record<string, string> = {};
+      const errBody = err.body;
+      if (
+        typeof errBody === "object" &&
+        errBody !== null &&
+        "errors" in errBody &&
+        Array.isArray((errBody as { errors: unknown[] }).errors)
+      ) {
+        for (const issue of (errBody as { errors: { path?: string; message?: string }[] }).errors) {
+          if (typeof issue.path === "string" && typeof issue.message === "string") {
+            fieldErrors[issue.path] = issue.message;
+          }
+        }
+      }
+      return {
+        error: err.detail ?? err.kind ?? `API ${err.status}`,
+        fieldErrors,
+      };
+    }
+    // redirect() throws NEXT_REDIRECT — let it propagate.
+    throw err;
+  }
 }
