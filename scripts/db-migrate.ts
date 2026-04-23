@@ -18,7 +18,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { Kysely, Migrator, PostgresDialect } from "kysely";
+import { Kysely, Migrator, NO_MIGRATIONS, PostgresDialect } from "kysely";
 import { Pool } from "pg";
 
 import { SqlFileMigrationProvider } from "../packages/db/src/migrator.js";
@@ -62,7 +62,7 @@ async function main(): Promise<void> {
     let result;
     if (hasFlag("--down-all")) {
       console.log("db-migrate: rolling back every applied migration");
-      result = await migrator.migrateTo("NO_MIGRATIONS");
+      result = await migrator.migrateTo(NO_MIGRATIONS);
     } else if (hasFlag("--down-to")) {
       const target = flagValue("--down-to");
       if (!target) {

@@ -13,7 +13,7 @@
 // migration), so RLS fires. In production the connecting user IS `erp_app`,
 // which means `SET LOCAL ROLE` to the same role is a no-op.
 
-import { sql, type Kysely } from "kysely";
+import { sql, type Kysely, type Transaction } from "kysely";
 
 import type { Database } from "./schema.js";
 
@@ -31,7 +31,7 @@ export const APP_ROLE = "erp_app";
 export async function withTenantContext<T>(
   db: Kysely<Database>,
   tenantId: string,
-  fn: (trx: Kysely<Database>) => Promise<T>,
+  fn: (trx: Transaction<Database>) => Promise<T>,
 ): Promise<T> {
   if (!tenantId) {
     throw new Error(
@@ -54,7 +54,7 @@ export async function withTenantContext<T>(
  */
 export async function withoutTenantContext<T>(
   db: Kysely<Database>,
-  fn: (trx: Kysely<Database>) => Promise<T>,
+  fn: (trx: Transaction<Database>) => Promise<T>,
 ): Promise<T> {
   return db.transaction().execute(fn);
 }

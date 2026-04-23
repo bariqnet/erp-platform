@@ -12,10 +12,11 @@
 // this file is deliberately small — the safety guarantee lives in the
 // lint pass, not in a complex runtime.
 
-import { type Kysely } from "kysely";
+import { type Kysely, type Transaction } from "kysely";
+
+import { withTenantContext, withoutTenantContext } from "./tenant-context.js";
 
 import type { Database } from "./schema.js";
-import { withTenantContext, withoutTenantContext } from "./tenant-context.js";
 
 export abstract class TenantRepository {
   protected constructor(protected readonly db: Kysely<Database>) {}
@@ -27,7 +28,7 @@ export abstract class TenantRepository {
    */
   protected runAsTenant<T>(
     tenantId: string,
-    fn: (trx: Kysely<Database>) => Promise<T>,
+    fn: (trx: Transaction<Database>) => Promise<T>,
   ): Promise<T> {
     return withTenantContext(this.db, tenantId, fn);
   }
@@ -38,7 +39,7 @@ export abstract class TenantRepository {
    * equivalent justification — scripts/verify.ts invariant #1 enforces
    * the convention at the class level.
    */
-  protected runAsVendor<T>(fn: (trx: Kysely<Database>) => Promise<T>): Promise<T> {
+  protected runAsVendor<T>(fn: (trx: Transaction<Database>) => Promise<T>): Promise<T> {
     return withoutTenantContext(this.db, fn);
   }
 }

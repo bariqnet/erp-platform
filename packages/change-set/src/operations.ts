@@ -12,12 +12,7 @@
 // Schemas are Zod-discriminated on `op`. Types are inferred via
 // `z.infer` per the house pattern.
 
-import {
-  LayerSchema,
-  MergeStrategySchema,
-  ObjectIdSchema,
-  ObjectTypeSchema,
-} from "@erp/core";
+import { LayerSchema, MergeStrategySchema, ObjectIdSchema, ObjectTypeSchema } from "@erp/core";
 import { z } from "zod";
 
 // ── Upsert ────────────────────────────────────────────────────────────

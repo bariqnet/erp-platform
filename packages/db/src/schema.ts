@@ -3,7 +3,10 @@
 // Every Database key is the fully-qualified `metadata.meta_*` name — Kysely
 // resolves the schema automatically. New tables land here as they ship.
 
+import type { ChangeSetStatus, Layer } from "@erp/core";
 import type { ColumnType, Generated } from "kysely";
+
+export type { ChangeSetStatus } from "@erp/core";
 
 // ── Shared helpers ─────────────────────────────────────────────────────────
 
@@ -14,12 +17,12 @@ import type { ColumnType, Generated } from "kysely";
 export type JsonB<T> = ColumnType<T, T | string, T | string>;
 
 // ── Discriminated string unions used across tables ────────────────────────
+// MetadataLayer mirrors @erp/core's `Layer` so callers can keep the
+// short, table-flavored name when working in the DB layer.
 
-export type MetadataLayer = "L0" | "L1" | "L2" | "L3" | "L4";
+export type MetadataLayer = Layer;
 
 export type MetadataOperation = "upsert" | "tombstone";
-
-export type ChangeSetStatus = "draft" | "proposed" | "approved" | "deployed" | "rolled_back";
 
 // ── meta_object ─────────────────────────────────────────────────────────────
 // Immutable-versioned row table. Never UPDATE a data field (§7 #2); a change

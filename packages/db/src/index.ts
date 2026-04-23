@@ -6,6 +6,16 @@ export { withTenantContext, withoutTenantContext } from "./tenant-context.js";
 
 export { TenantRepository } from "./tenant-repository.js";
 
+export {
+  ChangeSetRepository,
+  type AddOperationsParams,
+  type ChangeSetRow,
+  type CreateChangeSetParams,
+  type RepoError as ChangeSetRepoError,
+  type TransitionInput,
+  type TransitionOutcome,
+} from "./change-set-repository.js";
+
 export type {
   ChangeSetStatus,
   Database,

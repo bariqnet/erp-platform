@@ -6,7 +6,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { Kysely, PostgresDialect, sql } from "kysely";
+import { Kysely, NO_MIGRATIONS, PostgresDialect, sql } from "kysely";
 import { Pool } from "pg";
 import { GenericContainer, Wait, type StartedTestContainer } from "testcontainers";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -83,7 +83,9 @@ describe("migrator idempotency", () => {
   it("rolls back and re-applies cleanly", async () => {
     const migrator = createMigrator(db, MIGRATIONS_DIR);
 
-    const down = await migrator.migrateDown();
+    // Roll back to NO_MIGRATIONS so the schema is fully empty regardless
+    // of how many migrations have shipped.
+    const down = await migrator.migrateTo(NO_MIGRATIONS);
     expect(down.error).toBeUndefined();
     expect(down.results?.length).toBeGreaterThanOrEqual(1);
 

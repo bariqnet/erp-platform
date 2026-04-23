@@ -11,7 +11,10 @@ import {
   type TransitionActor,
 } from "./state-machine.js";
 
-function actor(roles: readonly string[], overrides: Partial<TransitionActor> = {}): TransitionActor {
+function actor(
+  roles: readonly string[],
+  overrides: Partial<TransitionActor> = {},
+): TransitionActor {
   return { actor_id: "u_1", roles, ...overrides };
 }
 
@@ -60,7 +63,11 @@ describe("transition — invalid_transition errors", () => {
       const allowed = legal.get(from)!.includes(action);
       if (allowed) continue;
       it(`rejects ${from} --(${action})-->  `, () => {
-        const r = transition(from, action, actor(["metadata.write", "metadata.approve", "metadata.deploy"]));
+        const r = transition(
+          from,
+          action,
+          actor(["metadata.write", "metadata.approve", "metadata.deploy"]),
+        );
         expect(Result.isErr(r)).toBe(true);
         if (Result.isErr(r)) {
           expect(r.error.kind).toBe("invalid_transition");

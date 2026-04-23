@@ -2,6 +2,8 @@
 // metadata-object types from here, never from per-file paths. Re-exports
 // stay alphabetical per file for review-time diff clarity.
 
+export { ChangeSetStatusSchema, type ChangeSetStatus } from "./change-set-status.js";
+
 export {
   EnvelopeSchema,
   TombstoneEnvelopeSchema,
