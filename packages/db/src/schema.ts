@@ -44,6 +44,12 @@ export interface MetaObjectTable {
   change_set_id: string;
   valid_from: Generated<Date>;
   valid_until: Date | null;
+  /**
+   * Populated by deploy() when a newer Change Set supersedes this row.
+   * rollback() uses this column to find and revert the exact rows a
+   * given deploy touched (RFC §11.4 · O(1) rollback).
+   */
+  superseded_by_change_set_id: string | null;
 }
 
 // ── meta_change_set ─────────────────────────────────────────────────────────
@@ -59,6 +65,13 @@ export interface MetaChangeSetTable {
   approved_at: Date | null;
   deployed_at: Date | null;
   rolled_back_at: Date | null;
+  /**
+   * Accumulates the Change Set's pending operations until deploy. Each
+   * entry is a `{ op: "upsert" | "tombstone", object_id, layer, body?,
+   * merge_strategy?, key_field?, reason? }` — see @erp/change-set for
+   * the Zod schema. Empty `[]` by default.
+   */
+  staged_operations: JsonB<readonly Record<string, unknown>[]>;
 }
 
 // ── meta_layer_activation ───────────────────────────────────────────────────

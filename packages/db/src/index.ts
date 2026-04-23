@@ -4,6 +4,8 @@ export { createMigrator, parseMigration, SqlFileMigrationProvider } from "./migr
 
 export { withTenantContext, withoutTenantContext } from "./tenant-context.js";
 
+export { TenantRepository } from "./tenant-repository.js";
+
 export type {
   ChangeSetStatus,
   Database,
