@@ -30,6 +30,7 @@ import {
 import { Result, type ChangeSetStatus, type DomainEvent, type Result as ResultT } from "@erp/core";
 import { sql, type Kysely, type Transaction } from "kysely";
 
+import { AuditRepository } from "./audit-repository.js";
 import { TenantRepository } from "./tenant-repository.js";
 
 import type { Database } from "./schema.js";
@@ -87,8 +88,11 @@ export type RepoError =
 // ── ChangeSetRepository ───────────────────────────────────────────────
 
 export class ChangeSetRepository extends TenantRepository {
+  private readonly audit: AuditRepository;
+
   constructor(db: Kysely<Database>) {
     super(db);
+    this.audit = new AuditRepository(db);
   }
 
   /** Insert a new draft Change Set. */
@@ -387,6 +391,14 @@ export class ChangeSetRepository extends TenantRepository {
     return newlyCreated.length;
   }
 
+  /**
+   * Write one hash-chained audit row inside the caller's transaction.
+   * Delegates to AuditRepository.appendInTx so every row carries
+   * before_hash / after_hash — the same chain the Runtime API writes
+   * use (TASK-13 AuditRepository). Legacy rows written by the
+   * pre-chain version of this method have NULL hashes; scripts/
+   * backfill-audit-chain.ts (TASK-14.1) retrofits them on demand.
+   */
   private async writeAudit(
     trx: Transaction<Database>,
     entry: {
@@ -398,19 +410,16 @@ export class ChangeSetRepository extends TenantRepository {
       context?: Record<string, unknown>;
     },
   ): Promise<void> {
-    await trx
-      .insertInto("metadata.meta_audit_log")
-      .values({
-        tenant_id: entry.tenant_id,
-        actor_id: entry.actor_id,
-        action: entry.action,
-        target_type: "change_set",
-        target_id: entry.change_set_id,
-        change_set_id: entry.change_set_id,
-        diff: entry.diff ? JSON.stringify(entry.diff) : null,
-        context: entry.context ? JSON.stringify(entry.context) : null,
-      })
-      .execute();
+    await this.audit.appendInTx(trx, {
+      tenant_id: entry.tenant_id,
+      actor_id: entry.actor_id,
+      action: entry.action,
+      target_type: "change_set",
+      target_id: entry.change_set_id,
+      change_set_id: entry.change_set_id,
+      ...(entry.diff !== undefined ? { diff: entry.diff } : {}),
+      ...(entry.context !== undefined ? { context: entry.context } : {}),
+    });
   }
 }
 
