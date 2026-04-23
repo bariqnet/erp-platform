@@ -200,7 +200,7 @@ importers:
         version: link:../../packages/ui-kit
       next:
         specifier: 14.2.25
-        version: 14.2.25(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 14.2.25(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -226,6 +226,9 @@ importers:
 
   apps/kernel:
     dependencies:
+      '@asteasolutions/zod-to-openapi':
+        specifier: 7.3.0
+        version: 7.3.0(zod@3.24.2)
       '@erp/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -244,6 +247,24 @@ importers:
       '@erp/telemetry':
         specifier: workspace:*
         version: link:../../packages/telemetry
+      fastify:
+        specifier: 4.29.0
+        version: 4.29.0
+      fastify-plugin:
+        specifier: 5.0.1
+        version: 5.0.1
+      ioredis:
+        specifier: 'catalog:'
+        version: 5.5.0
+      kysely:
+        specifier: 'catalog:'
+        version: 0.27.6
+      pino:
+        specifier: 'catalog:'
+        version: 9.6.0
+      zod:
+        specifier: 'catalog:'
+        version: 3.24.2
     devDependencies:
       '@erp/config':
         specifier: workspace:*
@@ -251,6 +272,15 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 20.17.30
+      '@types/pg':
+        specifier: 8.11.10
+        version: 8.11.10
+      pg:
+        specifier: 8.13.3
+        version: 8.13.3
+      testcontainers:
+        specifier: 'catalog:'
+        version: 10.18.0
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
@@ -477,6 +507,9 @@ importers:
       '@erp/core':
         specifier: workspace:*
         version: link:../core
+      '@opentelemetry/api':
+        specifier: 1.9.0
+        version: 1.9.0
       pino:
         specifier: 'catalog:'
         version: 9.6.0
@@ -858,6 +891,10 @@ packages:
   '@nolyfill/is-core-module@1.0.39':
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
+
+  '@opentelemetry/api@1.9.0':
+    resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
+    engines: {node: '>=8.0.0'}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -3387,6 +3424,8 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
+  '@opentelemetry/api@1.9.0': {}
+
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
@@ -4939,7 +4978,7 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
-  next@14.2.25(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  next@14.2.25(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@next/env': 14.2.25
       '@swc/helpers': 0.5.5
@@ -4960,6 +4999,7 @@ snapshots:
       '@next/swc-win32-arm64-msvc': 14.2.25
       '@next/swc-win32-ia32-msvc': 14.2.25
       '@next/swc-win32-x64-msvc': 14.2.25
+      '@opentelemetry/api': 1.9.0
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros
