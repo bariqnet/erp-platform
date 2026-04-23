@@ -213,6 +213,8 @@ export async function registerRuntimeEntityRoutes(
       tenantId: request.appContext.tenantId,
       userId: request.appContext.userId,
       userRoles: request.appContext.userRoles,
+      requestId: request.appContext.requestId,
+      traceId: request.appContext.traceId,
       entityId: params.entity,
       body,
     });
@@ -244,6 +246,8 @@ export async function registerRuntimeEntityRoutes(
       tenantId: request.appContext.tenantId,
       userId: request.appContext.userId,
       userRoles: request.appContext.userRoles,
+      requestId: request.appContext.requestId,
+      traceId: request.appContext.traceId,
       entityId: params.entity,
       rowId: params.id,
       body,
@@ -260,6 +264,8 @@ export async function registerRuntimeEntityRoutes(
       tenantId: request.appContext.tenantId,
       userId: request.appContext.userId,
       userRoles: request.appContext.userRoles,
+      requestId: request.appContext.requestId,
+      traceId: request.appContext.traceId,
       entityId: params.entity,
       rowId: params.id,
     });

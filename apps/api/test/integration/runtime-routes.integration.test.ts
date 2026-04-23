@@ -714,6 +714,113 @@ describe("Custom-field auto-derivation (CLAUDE.md §13 Done-when)", () => {
   });
 });
 
+// ── Audit log (RFC §13.2) ──────────────────────────────────────────
+
+describe("Runtime API writes emit hash-chained audit rows", () => {
+  async function fetchAudit(): Promise<
+    readonly {
+      action: string;
+      actor_id: string;
+      target_id: string | null;
+      before_hash: string | null;
+      after_hash: string | null;
+      context: Record<string, unknown> | null;
+    }[]
+  > {
+    return db.transaction().execute(async (trx) => {
+      await sql`SELECT set_config('app.current_tenant', ${TENANT}, true)`.execute(trx);
+      return trx
+        .selectFrom("metadata.meta_audit_log")
+        .select(["action", "actor_id", "target_id", "before_hash", "after_hash", "context"])
+        .where("tenant_id", "=", TENANT)
+        .where("after_hash", "is not", null)
+        .orderBy("audit_pk")
+        .execute();
+    });
+  }
+
+  it("POST writes a .create audit row with the after body in diff", async () => {
+    await seedBaselineMetadata();
+    const created = await handle.app.inject({
+      method: "POST",
+      url: `/v1/${ENTITY}`,
+      headers: { ...ADMIN_HEADERS, "x-request-id": "rq_create" },
+      payload: { name: "Acme", currency: "IQD" },
+    });
+    expect(created.statusCode).toBe(201);
+    const { row_id } = created.json() as { row_id: string };
+    const audit = await fetchAudit();
+    expect(audit).toHaveLength(1);
+    expect(audit[0]?.action).toBe(`${ENTITY}.create`);
+    expect(audit[0]?.actor_id).toBe("u_admin");
+    expect(audit[0]?.target_id).toBe(row_id);
+    expect(audit[0]?.before_hash).toBeNull();
+    expect(audit[0]?.after_hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(audit[0]?.context).toMatchObject({ request_id: "rq_create" });
+  });
+
+  it("POST → PATCH → DELETE produces a continuous hash chain", async () => {
+    await seedBaselineMetadata();
+    const created = await handle.app.inject({
+      method: "POST",
+      url: `/v1/${ENTITY}`,
+      headers: ADMIN_HEADERS,
+      payload: { name: "Original", currency: "IQD" },
+    });
+    const { row_id } = created.json() as { row_id: string };
+
+    await handle.app.inject({
+      method: "PATCH",
+      url: `/v1/${ENTITY}/${row_id}`,
+      headers: ADMIN_HEADERS,
+      payload: { phone: "+9647710000000" },
+    });
+
+    await handle.app.inject({
+      method: "DELETE",
+      url: `/v1/${ENTITY}/${row_id}`,
+      headers: ADMIN_HEADERS,
+    });
+
+    const audit = await fetchAudit();
+    expect(audit.map((a) => a.action)).toEqual([
+      `${ENTITY}.create`,
+      `${ENTITY}.update`,
+      `${ENTITY}.delete`,
+    ]);
+    // Chain continuity: each row's before_hash = previous row's after_hash.
+    expect(audit[0]?.before_hash).toBeNull();
+    expect(audit[1]?.before_hash).toBe(audit[0]?.after_hash);
+    expect(audit[2]?.before_hash).toBe(audit[1]?.after_hash);
+  });
+
+  it("a failed permission check does NOT emit an audit row (nothing changed)", async () => {
+    await seedBaselineMetadata();
+    const denied = await handle.app.inject({
+      method: "POST",
+      url: `/v1/${ENTITY}`,
+      headers: READER_HEADERS, // unknown role → 403
+      payload: { name: "Denied", currency: "IQD" },
+    });
+    expect(denied.statusCode).toBe(403);
+    const audit = await fetchAudit();
+    expect(audit).toHaveLength(0);
+  });
+
+  it("a failed row validation does NOT emit an audit row", async () => {
+    await seedBaselineMetadata();
+    const bad = await handle.app.inject({
+      method: "POST",
+      url: `/v1/${ENTITY}`,
+      headers: ADMIN_HEADERS,
+      payload: { currency: "IQD" }, // missing required name
+    });
+    expect(bad.statusCode).toBe(400);
+    const audit = await fetchAudit();
+    expect(audit).toHaveLength(0);
+  });
+});
+
 // ── OpenAPI ─────────────────────────────────────────────────────────
 
 describe("OpenAPI", () => {

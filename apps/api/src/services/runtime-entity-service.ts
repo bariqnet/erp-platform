@@ -22,17 +22,20 @@
 // expected failures.
 
 import { Result, type GrantAction, type MetadataStore, type Result as ResultT } from "@erp/core";
+import { withTenantContext, type Database } from "@erp/db";
 import { materialize } from "@erp/kernel-runtime";
 import { resolve as resolveMetadata } from "@erp/metadata";
 
 import type { Denied, PermissionGate } from "./permission-gate.js";
 import type {
+  AuditRepository,
   EntityRow,
   EntityRowRepository,
   ListEntityRowsParams,
   MetadataObjectRepository,
 } from "@erp/db";
 import type { MaterializedEntity, MaterializedEntityCache } from "@erp/kernel-runtime";
+import type { Kysely } from "kysely";
 
 // ── I/O types ────────────────────────────────────────────────────────
 
@@ -40,6 +43,9 @@ export interface CallerContext {
   readonly tenantId: string;
   readonly userId: string;
   readonly userRoles: readonly string[];
+  /** Optional request-scoped trace identifiers, carried into audit rows. */
+  readonly requestId?: string;
+  readonly traceId?: string;
 }
 
 export interface ListInput extends CallerContext {
@@ -100,9 +106,11 @@ export class RuntimeEntityService {
     // the signature so callers don't need to rewire when that lands.
     _metadataRepo: MetadataObjectRepository,
     private readonly rowRepo: EntityRowRepository,
+    private readonly auditRepo: AuditRepository,
     private readonly store: MetadataStore,
     private readonly gate: PermissionGate,
     private readonly cache: MaterializedEntityCache,
+    private readonly db: Kysely<Database>,
   ) {
     void _metadataRepo;
   }
@@ -161,11 +169,27 @@ export class RuntimeEntityService {
     }
 
     const status = mat.entity.lifecycle?.initial ?? null;
-    const created = await this.rowRepo.create(input.tenantId, {
-      entity_id: input.entityId,
-      body: parsed.data,
-      status,
-      created_by: input.userId,
+    // One transaction: the row INSERT and the hash-chained audit row
+    // commit or roll back together. RFC §13.2: audit is atomic with
+    // the data it describes.
+    const created = await withTenantContext(this.db, input.tenantId, async (trx) => {
+      const row = await this.rowRepo.createInTx(trx, input.tenantId, {
+        entity_id: input.entityId,
+        body: parsed.data,
+        status,
+        created_by: input.userId,
+      });
+      const context = auditContextOf(input);
+      await this.auditRepo.appendInTx(trx, {
+        tenant_id: input.tenantId,
+        actor_id: input.userId,
+        action: `${input.entityId}.create`,
+        target_type: "entity_row",
+        target_id: row.row_id,
+        diff: { after: row.body },
+        ...(context !== undefined ? { context } : {}),
+      });
+      return row;
     });
     return Result.ok(created);
   }
@@ -191,28 +215,58 @@ export class RuntimeEntityService {
     // Merge into existing body so PATCH truly patches (replacing only
     // the keys the caller sent). The repository layer stores the merged
     // body wholesale — that's fine for JSONB and matches RFC semantics.
-    const existing = await this.rowRepo.get(input.tenantId, input.entityId, input.rowId);
-    if (existing === null) {
-      return Result.err({
-        kind: "row_not_found",
-        entity_id: input.entityId,
-        row_id: input.rowId,
-      });
-    }
+    // One transaction: get + patch + audit append all commit together.
+    return withTenantContext(this.db, input.tenantId, async (trx) => {
+      const existing = await trx
+        .selectFrom("ops.entity_row")
+        .selectAll()
+        .where("tenant_id", "=", input.tenantId)
+        .where("entity_id", "=", input.entityId)
+        .where("row_id", "=", input.rowId)
+        .where("deleted_at", "is", null)
+        .executeTakeFirst();
+      if (existing === undefined) {
+        return Result.err({
+          kind: "row_not_found",
+          entity_id: input.entityId,
+          row_id: input.rowId,
+        });
+      }
 
-    const mergedBody: Record<string, unknown> = { ...existing.body, ...parsed.data };
-    const patched = await this.rowRepo.patch(input.tenantId, input.entityId, input.rowId, {
-      body: mergedBody,
-      updated_by: input.userId,
-    });
-    if (patched === null) {
-      return Result.err({
-        kind: "row_not_found",
-        entity_id: input.entityId,
-        row_id: input.rowId,
+      const mergedBody: Record<string, unknown> = {
+        ...(existing.body as Record<string, unknown>),
+        ...parsed.data,
+      };
+      const patched = await this.rowRepo.patchInTx(
+        trx,
+        input.tenantId,
+        input.entityId,
+        input.rowId,
+        { body: mergedBody, updated_by: input.userId },
+      );
+      if (patched === null) {
+        return Result.err({
+          kind: "row_not_found",
+          entity_id: input.entityId,
+          row_id: input.rowId,
+        });
+      }
+      const context = auditContextOf(input);
+      await this.auditRepo.appendInTx(trx, {
+        tenant_id: input.tenantId,
+        actor_id: input.userId,
+        action: `${input.entityId}.update`,
+        target_type: "entity_row",
+        target_id: patched.row_id,
+        diff: {
+          before: existing.body,
+          after: patched.body,
+          changed: Object.keys(parsed.data),
+        },
+        ...(context !== undefined ? { context } : {}),
       });
-    }
-    return Result.ok(patched);
+      return Result.ok(patched);
+    });
   }
 
   async delete(input: DeleteInput): Promise<ResultT<{ readonly deleted: boolean }, RuntimeError>> {
@@ -222,20 +276,49 @@ export class RuntimeEntityService {
     const mat = await this.resolveMat(input.tenantId, input.entityId);
     if (Result.isErr(mat)) return mat;
 
-    const ok = await this.rowRepo.softDelete(
-      input.tenantId,
-      input.entityId,
-      input.rowId,
-      input.userId,
-    );
-    if (!ok) {
-      return Result.err({
-        kind: "row_not_found",
-        entity_id: input.entityId,
-        row_id: input.rowId,
+    return withTenantContext(this.db, input.tenantId, async (trx) => {
+      const existing = await trx
+        .selectFrom("ops.entity_row")
+        .selectAll()
+        .where("tenant_id", "=", input.tenantId)
+        .where("entity_id", "=", input.entityId)
+        .where("row_id", "=", input.rowId)
+        .where("deleted_at", "is", null)
+        .executeTakeFirst();
+      if (existing === undefined) {
+        return Result.err({
+          kind: "row_not_found",
+          entity_id: input.entityId,
+          row_id: input.rowId,
+        });
+      }
+
+      const ok = await this.rowRepo.softDeleteInTx(
+        trx,
+        input.tenantId,
+        input.entityId,
+        input.rowId,
+        input.userId,
+      );
+      if (!ok) {
+        return Result.err({
+          kind: "row_not_found",
+          entity_id: input.entityId,
+          row_id: input.rowId,
+        });
+      }
+      const context = auditContextOf(input);
+      await this.auditRepo.appendInTx(trx, {
+        tenant_id: input.tenantId,
+        actor_id: input.userId,
+        action: `${input.entityId}.delete`,
+        target_type: "entity_row",
+        target_id: input.rowId,
+        diff: { before: existing.body },
+        ...(context !== undefined ? { context } : {}),
       });
-    }
-    return Result.ok({ deleted: true });
+      return Result.ok({ deleted: true });
+    });
   }
 
   // ── helpers ────────────────────────────────────────────────────────
@@ -287,6 +370,13 @@ export class RuntimeEntityService {
     this.cache.set(tenantId, entityId, versionKey, mat);
     return Result.ok(mat);
   }
+}
+
+function auditContextOf(input: CallerContext): Record<string, unknown> | undefined {
+  const ctx: Record<string, unknown> = {};
+  if (input.requestId !== undefined && input.requestId !== "") ctx.request_id = input.requestId;
+  if (input.traceId !== undefined && input.traceId !== "") ctx.trace_id = input.traceId;
+  return Object.keys(ctx).length === 0 ? undefined : ctx;
 }
 
 function provenanceVersionKey(provenance: readonly { layer: string; version: number }[]): number {

@@ -8,6 +8,7 @@
 
 import { type OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
 import {
+  AuditRepository,
   ChangeSetRepository,
   EntityRowRepository,
   MetadataObjectRepository,
@@ -105,6 +106,7 @@ export async function buildServer(input: BuildServerInput = {}): Promise<ServerH
   const metadataObjectRepo = new MetadataObjectRepository(db);
   const changeSetRepo = new ChangeSetRepository(db);
   const entityRowRepo = new EntityRowRepository(db);
+  const auditRepo = new AuditRepository(db);
   const metadataObjectService = new MetadataObjectService(metadataObjectRepo);
   const changeSetService = new ChangeSetService(changeSetRepo);
 
@@ -118,9 +120,11 @@ export async function buildServer(input: BuildServerInput = {}): Promise<ServerH
   const runtimeEntityService = new RuntimeEntityService(
     metadataObjectRepo,
     entityRowRepo,
+    auditRepo,
     metadataObjectRepo,
     permissionGate,
     materializedCache,
+    db,
   );
 
   await registerHealthRoutes(app, {
