@@ -137,6 +137,9 @@ importers:
       '@erp/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@erp/kernel-runtime':
+        specifier: workspace:*
+        version: link:../../packages/kernel-runtime
       '@erp/metadata':
         specifier: workspace:*
         version: link:../../packages/metadata
@@ -466,6 +469,9 @@ importers:
       '@erp/metadata':
         specifier: workspace:*
         version: link:../metadata
+      zod:
+        specifier: 'catalog:'
+        version: 3.24.2
     devDependencies:
       '@erp/config':
         specifier: workspace:*

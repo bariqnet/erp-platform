@@ -26,7 +26,8 @@
   },
   "dependencies": {
     "@erp/core": "workspace:*",
-    "@erp/metadata": "workspace:*"
+    "@erp/metadata": "workspace:*",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@erp/config": "workspace:*",
