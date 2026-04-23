@@ -16,6 +16,12 @@ export {
   type TransitionOutcome,
 } from "./change-set-repository.js";
 
+export {
+  MetadataObjectRepository,
+  type ListObjectsParams,
+  type MetaObjectRow,
+} from "./metadata-object-repository.js";
+
 export type {
   ChangeSetStatus,
   Database,

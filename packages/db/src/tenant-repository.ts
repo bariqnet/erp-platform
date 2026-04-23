@@ -19,7 +19,9 @@ import { withTenantContext, withoutTenantContext } from "./tenant-context.js";
 import type { Database } from "./schema.js";
 
 export abstract class TenantRepository {
-  protected constructor(protected readonly db: Kysely<Database>) {}
+  // Public so concrete subclasses can be instantiated by app wiring
+  // (apps/api/src/server.ts). Subclasses inherit visibility.
+  constructor(protected readonly db: Kysely<Database>) {}
 
   /**
    * Run `fn` inside a transaction that has the `erp_app` role assumed

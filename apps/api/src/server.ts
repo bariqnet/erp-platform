@@ -7,7 +7,12 @@
 // an in-memory pool, a NoopBus). Production calls it with real ones.
 
 import { type OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
-import { createDatabase, type Database } from "@erp/db";
+import {
+  ChangeSetRepository,
+  MetadataObjectRepository,
+  createDatabase,
+  type Database,
+} from "@erp/db";
 import { createLogger, type Logger } from "@erp/telemetry";
 import { fastify, type FastifyInstance } from "fastify";
 import { type Kysely } from "kysely";
@@ -18,9 +23,14 @@ import { createOpenApiRegistry } from "./openapi-registry.js";
 import authPlugin from "./plugins/auth.js";
 import errorsPlugin from "./plugins/errors.js";
 import openapiPlugin from "./plugins/openapi.js";
+import rateLimitPlugin from "./plugins/rate-limit.js";
 import telemetryPlugin from "./plugins/telemetry.js";
 import tenantContextPlugin from "./plugins/tenant-context.js";
+import { registerChangeSetRoutes } from "./routes/admin/changes.js";
+import { registerMetadataObjectRoutes } from "./routes/admin/metadata-objects.js";
 import { registerHealthRoutes } from "./routes/health.js";
+import { ChangeSetService } from "./services/change-set-service.js";
+import { MetadataObjectService } from "./services/metadata-object-service.js";
 
 export interface BuildServerInput {
   /** Postgres connection string. */
@@ -76,6 +86,7 @@ export async function buildServer(input: BuildServerInput = {}): Promise<ServerH
     input.authRequired !== undefined ? { required: input.authRequired } : {};
   await app.register(authPlugin, authOpts);
   await app.register(tenantContextPlugin);
+  await app.register(rateLimitPlugin, {});
   await app.register(openapiPlugin, {
     registry,
     title: "ERP Platform API",
@@ -83,12 +94,22 @@ export async function buildServer(input: BuildServerInput = {}): Promise<ServerH
     description: "Admin API + Runtime API for the ERP platform.",
   });
 
+  // Repositories + services. Constructed once per server, not per-request
+  // — the Kysely instance is the connection pool, repositories carry no
+  // state of their own.
+  const metadataObjectRepo = new MetadataObjectRepository(db);
+  const changeSetRepo = new ChangeSetRepository(db);
+  const metadataObjectService = new MetadataObjectService(metadataObjectRepo);
+  const changeSetService = new ChangeSetService(changeSetRepo);
+
   await registerHealthRoutes(app, {
     serviceName: SERVICE_NAME,
     db,
     registry,
     startedAt: STARTED_AT,
   });
+  await registerMetadataObjectRoutes(app, { registry, service: metadataObjectService });
+  await registerChangeSetRoutes(app, { registry, service: changeSetService });
 
   return {
     app,

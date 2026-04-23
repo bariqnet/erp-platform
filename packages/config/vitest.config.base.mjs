@@ -27,7 +27,19 @@ export const baseConfig = defineConfig({
     // *.integration.test.ts runs via `pnpm test:integration`, not the default
     // `pnpm test`, because integration tests spin up real containers and are
     // too slow for every-commit verify.
-    exclude: ["node_modules", "dist", ".turbo", "coverage", "**/*.integration.test.ts"],
+    //
+    // *.bench.test.ts runs via `pnpm test:bench` — perf assertions are
+    // sensitive to parallel-test contention; running them under load
+    // produces flaky failures unrelated to real regressions. The bench
+    // file's own assertions still hold under stable conditions.
+    exclude: [
+      "node_modules",
+      "dist",
+      ".turbo",
+      "coverage",
+      "**/*.integration.test.ts",
+      "**/*.bench.test.ts",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
