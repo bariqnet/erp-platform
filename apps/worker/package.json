@@ -24,7 +24,9 @@
     "@erp/core": "workspace:*",
     "@erp/db": "workspace:*",
     "@erp/events": "workspace:*",
-    "@erp/telemetry": "workspace:*"
+    "@erp/telemetry": "workspace:*",
+    "kysely": "catalog:",
+    "pg": "8.13.3"
   },
   "devDependencies": {
     "@erp/config": "workspace:*",
