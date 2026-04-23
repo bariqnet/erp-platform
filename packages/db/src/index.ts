@@ -26,4 +26,5 @@ export type {
   MetadataOperation,
   MetaLayerActivationTable,
   MetaObjectTable,
+  MetaOutboxTable,
 } from "./schema.js";

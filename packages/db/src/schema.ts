@@ -89,6 +89,29 @@ export interface MetaLayerActivationTable {
   activated_by: string;
 }
 
+// ── meta_outbox ─────────────────────────────────────────────────────────────
+// Backs @erp/events' OutboxBus. Producers INSERT inside their own
+// transaction; the OutboxPump reads pending rows, dispatches, then sets
+// delivered_at. UNIQUE on dedup_key so retried publishes collapse.
+export interface MetaOutboxTable {
+  outbox_pk: Generated<string>; // BIGSERIAL
+  event_id: string; // UUID, UNIQUE
+  event_type: string;
+  event_version: ColumnType<number, number | undefined, number>;
+  occurred_at: Date;
+  tenant_id: string | null;
+  actor_id: string | null;
+  change_set_id: string | null;
+  dedup_key: string;
+  trace: JsonB<Record<string, unknown>> | null;
+  payload: JsonB<Record<string, unknown>>;
+  enqueued_at: Generated<Date>;
+  delivered_at: Date | null;
+  attempt_count: ColumnType<number, number | undefined, number>;
+  last_attempt_at: Date | null;
+  last_error: string | null;
+}
+
 // ── meta_audit_log ──────────────────────────────────────────────────────────
 // Append-only. `before_hash` chains to the prior row's `after_hash`; tamper
 // detection is an application-layer responsibility (RFC §13.2).
@@ -114,4 +137,5 @@ export interface Database {
   "metadata.meta_change_set": MetaChangeSetTable;
   "metadata.meta_layer_activation": MetaLayerActivationTable;
   "metadata.meta_audit_log": MetaAuditLogTable;
+  "metadata.meta_outbox": MetaOutboxTable;
 }
