@@ -118,6 +118,45 @@ export class MetadataObjectRepository extends TenantRepository implements Metada
   }
 
   /**
+   * Distinct object ids of a given type that are currently active for
+   * the tenant (either at a vendor layer the tenant inherits, or at a
+   * tenant-specific layer). Used by the Permission Gate to enumerate
+   * every `prm.*` a tenant has, then resolve each through the layer
+   * stack — the resolver knows nothing about the "set of active
+   * objects for a tenant" concept, so we materialize it here.
+   */
+  async listActiveObjectIds(tenantId: string, type: ObjectType): Promise<readonly string[]> {
+    // Union tenant-scoped + vendor-global rows, same as history().
+    const [tenantRows, vendorRows] = await Promise.all([
+      this.runAsTenant(tenantId, async (trx) =>
+        trx
+          .selectFrom("metadata.meta_object")
+          .select("object_id")
+          .distinct()
+          .where("object_type", "=", type)
+          .where("tenant_id", "=", tenantId)
+          .where("valid_until", "is", null)
+          .execute(),
+      ),
+      this.runAsVendor(async (trx) =>
+        trx
+          .selectFrom("metadata.meta_object")
+          .select("object_id")
+          .distinct()
+          .where("object_type", "=", type)
+          .where("tenant_id", "is", null)
+          .where("valid_until", "is", null)
+          .execute(),
+      ),
+    ]);
+
+    const ids = new Set<string>();
+    for (const r of tenantRows) ids.add(r.object_id);
+    for (const r of vendorRows) ids.add(r.object_id);
+    return [...ids].sort();
+  }
+
+  /**
    * Admin API · fetch a single object's currently-active row at a
    * specific layer. Returns null if no row exists.
    */

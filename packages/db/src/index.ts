@@ -22,6 +22,14 @@ export {
   type MetaObjectRow,
 } from "./metadata-object-repository.js";
 
+export {
+  EntityRowRepository,
+  type CreateEntityRowInput,
+  type EntityRow,
+  type ListEntityRowsParams,
+  type PatchEntityRowInput,
+} from "./entity-row-repository.js";
+
 export type {
   ChangeSetStatus,
   Database,
@@ -33,4 +41,5 @@ export type {
   MetaLayerActivationTable,
   MetaObjectTable,
   MetaOutboxTable,
+  OpsEntityRowTable,
 } from "./schema.js";

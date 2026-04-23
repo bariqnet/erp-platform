@@ -45,6 +45,7 @@ async function freshDb(): Promise<void> {
   // Drop and re-apply migrations between scenarios so each test owns a
   // pristine schema. Faster than booting a new container for each test.
   await sql`DROP SCHEMA IF EXISTS metadata CASCADE`.execute(db);
+  await sql`DROP SCHEMA IF EXISTS ops CASCADE`.execute(db);
   await sql`DROP ROLE IF EXISTS erp_app`.execute(db);
   await sql`DELETE FROM kysely_migration`.execute(db).catch(() => undefined);
   await sql`DELETE FROM kysely_migration_lock`.execute(db).catch(() => undefined);

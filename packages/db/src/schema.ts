@@ -130,6 +130,24 @@ export interface MetaAuditLogTable {
   created_at: Generated<Date>;
 }
 
+// ── ops.entity_row ──────────────────────────────────────────────────────────
+// One row per tenant entity instance (RFC §4.2 JSONB strategy). Backs
+// every Runtime API endpoint (RFC §9.2). Inserted by
+// EntityRowRepository; row_id defaults to a server-generated UUID.
+export interface OpsEntityRowTable {
+  row_pk: Generated<string>; // BIGSERIAL — pg returns bigint as string
+  tenant_id: string;
+  entity_id: string; // e.g. 'ent.customer'
+  row_id: Generated<string>; // UUID — server-generated when omitted
+  body: JsonB<Record<string, unknown>>;
+  status: string | null;
+  created_at: Generated<Date>;
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>;
+  deleted_at: Date | null;
+  created_by: string | null;
+  updated_by: string | null;
+}
+
 // ── Database surface ────────────────────────────────────────────────────────
 
 export interface Database {
@@ -138,4 +156,5 @@ export interface Database {
   "metadata.meta_layer_activation": MetaLayerActivationTable;
   "metadata.meta_audit_log": MetaAuditLogTable;
   "metadata.meta_outbox": MetaOutboxTable;
+  "ops.entity_row": OpsEntityRowTable;
 }
