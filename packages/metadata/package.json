@@ -30,6 +30,7 @@
   "devDependencies": {
     "@erp/config": "workspace:*",
     "@types/node": "catalog:",
+    "fast-check": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
