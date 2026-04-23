@@ -9,15 +9,16 @@
     "build": "next build",
     "clean": "rimraf .next .turbo",
     "dev": "next dev --port 3002",
-    "lint": "eslint app",
+    "lint": "eslint app components lib",
     "start": "next start --port 3002",
-    "test": "echo 'apps/console has no unit tests in TASK-01; e2e arrives in TASK-12'",
+    "test": "echo 'apps/console has no unit tests; e2e arrives with TASK-14 / Playwright'",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@erp/core": "workspace:*",
     "@erp/i18n": "workspace:*",
     "@erp/ui-kit": "workspace:*",
+    "clsx": "2.1.1",
     "next": "14.2.25",
     "react": "18.3.1",
     "react-dom": "18.3.1"
@@ -27,6 +28,9 @@
     "@types/node": "catalog:",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
+    "autoprefixer": "10.4.20",
+    "postcss": "8.4.49",
+    "tailwindcss": "3.4.17",
     "typescript": "catalog:"
   }
 }
