@@ -25,7 +25,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@erp/core": "workspace:*"
+    "@erp/core": "workspace:*",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@erp/config": "workspace:*",
