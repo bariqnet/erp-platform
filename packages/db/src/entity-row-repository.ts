@@ -142,23 +142,39 @@ export class EntityRowRepository extends TenantRepository {
     rowId: string,
     input: PatchEntityRowInput,
   ): Promise<EntityRow | null> {
-    return this.runAsTenant(tenantId, async (trx) => {
-      const updated = await trx
-        .updateTable("ops.entity_row")
-        .set({
-          ...(input.body !== undefined ? { body: JSON.stringify(input.body) } : {}),
-          ...(input.status !== undefined ? { status: input.status } : {}),
-          ...(input.updated_by !== undefined ? { updated_by: input.updated_by } : {}),
-          updated_at: new Date(),
-        })
-        .where("tenant_id", "=", tenantId)
-        .where("entity_id", "=", entityId)
-        .where("row_id", "=", rowId)
-        .where("deleted_at", "is", null)
-        .returningAll()
-        .executeTakeFirst();
-      return updated ? toRow(updated) : null;
-    });
+    return this.runAsTenant(tenantId, async (trx) =>
+      this.patchInTx(trx, tenantId, entityId, rowId, input),
+    );
+  }
+
+  /**
+   * Transactional variant of patch(). Used by callers that want the
+   * row update to share a transaction with a neighboring write —
+   * most importantly the RuntimeEntityService, which appends an
+   * audit row in the same tx as the data mutation.
+   */
+  async patchInTx(
+    trx: Transaction<Database>,
+    tenantId: string,
+    entityId: string,
+    rowId: string,
+    input: PatchEntityRowInput,
+  ): Promise<EntityRow | null> {
+    const updated = await trx
+      .updateTable("ops.entity_row")
+      .set({
+        ...(input.body !== undefined ? { body: JSON.stringify(input.body) } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+        ...(input.updated_by !== undefined ? { updated_by: input.updated_by } : {}),
+        updated_at: new Date(),
+      })
+      .where("tenant_id", "=", tenantId)
+      .where("entity_id", "=", entityId)
+      .where("row_id", "=", rowId)
+      .where("deleted_at", "is", null)
+      .returningAll()
+      .executeTakeFirst();
+    return updated ? toRow(updated) : null;
   }
 
   /**
@@ -172,21 +188,32 @@ export class EntityRowRepository extends TenantRepository {
     rowId: string,
     actor: string | null,
   ): Promise<boolean> {
-    return this.runAsTenant(tenantId, async (trx) => {
-      const result = await trx
-        .updateTable("ops.entity_row")
-        .set({
-          deleted_at: new Date(),
-          updated_at: new Date(),
-          ...(actor !== null ? { updated_by: actor } : {}),
-        })
-        .where("tenant_id", "=", tenantId)
-        .where("entity_id", "=", entityId)
-        .where("row_id", "=", rowId)
-        .where("deleted_at", "is", null)
-        .executeTakeFirst();
-      return Number(result.numUpdatedRows) > 0;
-    });
+    return this.runAsTenant(tenantId, async (trx) =>
+      this.softDeleteInTx(trx, tenantId, entityId, rowId, actor),
+    );
+  }
+
+  /** Transactional variant of softDelete(). Same rationale as patchInTx. */
+  async softDeleteInTx(
+    trx: Transaction<Database>,
+    tenantId: string,
+    entityId: string,
+    rowId: string,
+    actor: string | null,
+  ): Promise<boolean> {
+    const result = await trx
+      .updateTable("ops.entity_row")
+      .set({
+        deleted_at: new Date(),
+        updated_at: new Date(),
+        ...(actor !== null ? { updated_by: actor } : {}),
+      })
+      .where("tenant_id", "=", tenantId)
+      .where("entity_id", "=", entityId)
+      .where("row_id", "=", rowId)
+      .where("deleted_at", "is", null)
+      .executeTakeFirst();
+    return Number(result.numUpdatedRows) > 0;
   }
 }
 

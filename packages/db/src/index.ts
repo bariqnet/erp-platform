@@ -30,6 +30,14 @@ export {
   type PatchEntityRowInput,
 } from "./entity-row-repository.js";
 
+export {
+  AuditRepository,
+  canonicalize,
+  computeAfterHash,
+  type AppendAuditInput,
+  type AuditRow,
+} from "./audit-repository.js";
+
 export type {
   ChangeSetStatus,
   Database,
