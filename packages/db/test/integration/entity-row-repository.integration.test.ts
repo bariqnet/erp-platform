@@ -32,6 +32,7 @@ let repo: EntityRowRepository;
 async function freshDb(): Promise<void> {
   await sql`DROP SCHEMA IF EXISTS metadata CASCADE`.execute(db);
   await sql`DROP SCHEMA IF EXISTS ops CASCADE`.execute(db);
+  await sql`DROP SCHEMA IF EXISTS auth CASCADE`.execute(db);
   await sql`DROP ROLE IF EXISTS erp_app`.execute(db);
   await sql`DELETE FROM kysely_migration`.execute(db).catch(() => undefined);
   await sql`DELETE FROM kysely_migration_lock`.execute(db).catch(() => undefined);

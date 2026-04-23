@@ -38,7 +38,17 @@ export {
   type AuditRow,
 } from "./audit-repository.js";
 
+export {
+  UserTenantRepository,
+  type AddUserTenantInput,
+  type UserTenantRow,
+} from "./user-tenant-repository.js";
+
 export type {
+  AuthAccountTable,
+  AuthSessionTable,
+  AuthUserTable,
+  AuthVerificationTable,
   ChangeSetStatus,
   Database,
   JsonB,
@@ -50,4 +60,5 @@ export type {
   MetaObjectTable,
   MetaOutboxTable,
   OpsEntityRowTable,
+  UserTenantTable,
 } from "./schema.js";

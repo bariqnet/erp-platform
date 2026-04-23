@@ -71,6 +71,7 @@ describe("migrator idempotency", () => {
       "meta_layer_activation",
       "meta_object",
       "meta_outbox",
+      "user_tenant",
     ]);
   });
 
@@ -110,6 +111,7 @@ describe("migrator idempotency", () => {
       "meta_layer_activation",
       "meta_object",
       "meta_outbox",
+      "user_tenant",
     ]);
   });
 });

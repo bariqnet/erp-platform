@@ -148,6 +148,71 @@ export interface OpsEntityRowTable {
   updated_by: string | null;
 }
 
+// ── auth.* ──────────────────────────────────────────────────────────────────
+// Better Auth's Kysely adapter owns these four tables. Column names match
+// Better Auth v1.6.x camelCase defaults so we don't need a custom field-
+// mapping layer. These tables are platform-global (not tenant-scoped) and
+// carry no RLS — access is gated by Better Auth's session endpoints.
+
+export interface AuthUserTable {
+  id: string; // Better Auth generates a nanoid
+  name: string | null;
+  email: string;
+  emailVerified: ColumnType<boolean, boolean | undefined, boolean>;
+  image: string | null;
+  createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
+  updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
+}
+
+export interface AuthSessionTable {
+  id: string;
+  userId: string;
+  token: string;
+  expiresAt: ColumnType<Date, Date | string, Date | string>;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
+  updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
+}
+
+export interface AuthAccountTable {
+  id: string;
+  userId: string;
+  accountId: string;
+  providerId: string;
+  accessToken: string | null;
+  refreshToken: string | null;
+  idToken: string | null;
+  accessTokenExpiresAt: Date | null;
+  refreshTokenExpiresAt: Date | null;
+  scope: string | null;
+  password: string | null;
+  createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
+  updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
+}
+
+export interface AuthVerificationTable {
+  id: string;
+  identifier: string;
+  value: string;
+  expiresAt: ColumnType<Date, Date | string, Date | string>;
+  createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
+  updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
+}
+
+// ── metadata.user_tenant ────────────────────────────────────────────────────
+// Multi-tenant authorization mapping. Strict-tenant RLS applied (see
+// migration 0005). Roles stored as a JSONB string[] for flexibility —
+// extended role metadata can land in later migrations without touching
+// this shape.
+export interface UserTenantTable {
+  user_tenant_pk: Generated<string>;
+  user_id: string;
+  tenant_id: string;
+  roles: JsonB<readonly string[]>;
+  created_at: Generated<Date>;
+}
+
 // ── Database surface ────────────────────────────────────────────────────────
 
 export interface Database {
@@ -156,5 +221,10 @@ export interface Database {
   "metadata.meta_layer_activation": MetaLayerActivationTable;
   "metadata.meta_audit_log": MetaAuditLogTable;
   "metadata.meta_outbox": MetaOutboxTable;
+  "metadata.user_tenant": UserTenantTable;
   "ops.entity_row": OpsEntityRowTable;
+  "auth.user": AuthUserTable;
+  "auth.session": AuthSessionTable;
+  "auth.account": AuthAccountTable;
+  "auth.verification": AuthVerificationTable;
 }

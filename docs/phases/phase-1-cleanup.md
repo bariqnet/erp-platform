@@ -22,7 +22,11 @@ prerequisite and deserves its own commit trail.
 Shipped on main. See [ADR-0003](../adr/0003-zod-4-migration.md).
 `pnpm verify` green; 113 integration tests pass on Zod 4.
 
-### TASK-10.1b — Better Auth wiring
+### TASK-10.1b — Better Auth wiring (partial)
+
+**Status:** Schema-layer done. Wiring layer deferred pending a
+deliberate integration pass (see TASK-10.1b.1 below for the open
+scope).
 
 **Goal:** replace the placeholder `x-user-id` / `x-user-roles` header
 auth with Better Auth (CLAUDE.md §2). Zod 4 is now in place
@@ -37,31 +41,44 @@ auth with Better Auth (CLAUDE.md §2). Zod 4 is now in place
 - [x] ~~Every `z.record(value)` call.~~ (TASK-10.1a; all 14 sites were already 2-arg.)
 - [x] ~~`@asteasolutions/zod-to-openapi` bumped.~~ (TASK-10.1a — now 8.5.0.)
 - [x] ~~Round-trip tests in `@erp/core/src/*.test.ts` stay green on v4.~~ (TASK-10.1a — unmodified.)
-- [ ] Migration 0005 `0005_auth.sql` creates the Better Auth tables
-      (users, sessions, accounts, verifications) in the `metadata`
-      schema with RLS policies on every tenant-scoped table.
-- [ ] `apps/api/src/plugins/auth.ts` replaced with a Better Auth
-      Fastify adapter. Session carries `tenant_id` as a claim; the
-      plugin maps it onto `request.appContext.{userId, userRoles,
-tenantId}`.
-- [ ] Every admin + runtime integration test that used
-      `x-user-id` / `x-user-roles` headers now builds a real session
-      via a `createSession(tenantId, roles)` test fixture.
-- [ ] `apps/console/app/login/login-form.tsx` POSTs credentials to
-      the Better Auth endpoint; `lib/session.ts` reads the Better
-      Auth cookie instead of the JSON dev cookie.
-- [ ] `apps/console/lib/api.ts`'s `authHeaders()` is replaced by
-      passing the Better Auth cookie through on the server-side fetch.
-- [ ] ADR-0002 status flips to `Superseded by ADR-NNNN` with the new
-      ADR covering the completed migration.
+- [x] ~~Migration 0005 `0005_auth.sql` creates the Better Auth tables
+      in the `auth` schema + `metadata.user_tenant` with RLS.~~
+      (Landed separately; no functional wiring yet — tables exist
+      empty.)
+- [x] ~~`@erp/db` exposes Kysely types for the new tables +
+      `UserTenantRepository` for membership lookups.~~
+- [x] ~~Kysely 0.28.16 bumped across the workspace (Better Auth's
+      peer-dep track).~~
+- [ ] **TASK-10.1b.1 — Better Auth wiring** (the hard integration):
+  - `packages/auth` package wraps `better-auth` with a multi-tenant
+    session enhancer.
+  - `apps/api/src/plugins/auth.ts` mounts Better Auth at
+    `/api/auth/*` and resolves sessions via the Fastify node
+    handler adapter.
+  - Resolved: how to reconcile Better Auth's kysely-adapter with
+    our shared Kysely instance (first attempt hit `dialect.createDriver
+is not a function` when passing `{ dialect: kyselyInstance, type }`;
+    need to use `{ db: kyselyInstance, type }` shape AND verify
+    schema-qualified table-name routing works end-to-end).
+  - Resolved: whether Better Auth's `modelName: "auth.user"` routes
+    correctly to the schema-qualified identifier or needs a custom
+    adapter / `SET search_path`.
+  - Every admin + runtime integration test using dev-header auth
+    switches to real sessions via a `createTestSession(tenantId,
+roles)` fixture.
+  - Console's login form → Better Auth endpoint; `lib/session.ts`
+    reads the BA cookie instead of the JSON dev cookie.
+  - ADR-0002 status flips to `Superseded by ADR-NNNN`.
 
-**Dependencies:** TASK-10.1a done. Blocks TASK-14.2, TASK-14.5, and
-most Phase 2 tasks that touch user-facing surface area.
+**Dependencies:** TASK-10.1b.1 blocks TASK-14.2, TASK-14.5, and most
+Phase 2 tasks that touch user-facing surface area. The schema-layer
+work (what landed here) unblocks nothing immediately but means the
+tables exist when TASK-10.1b.1 runs.
 
-**Scope:** TASK-10.1a was ~1 session (Zod 4 was less breaking than
-feared). TASK-10.1b is ~2–3 sessions for the Better Auth wiring
-(~300 lines of code + new migration + ~50 integration tests updating
-their auth fixtures).
+**Scope:** TASK-10.1b schema-layer (landed): ~1 session.
+TASK-10.1b.1 wiring: **5–7 focused sessions** including integration
+tests. This is materially larger than the original estimate. Worth
+its own ADR before code.
 
 ---
 
@@ -233,15 +250,16 @@ sessions. Largest single task in the cleanup list.
 
 ## Summary
 
-| Task       | Title                               | Scope    | Blocks                        |
-| ---------- | ----------------------------------- | -------- | ----------------------------- |
-| TASK-10.1a | Zod 3 → Zod 4 migration ✅ **done** | 1 day    | unblocked 10.1b               |
-| TASK-10.1b | Better Auth wiring                  | 2–3 days | almost everything user-facing |
-| TASK-14.1  | Audit chain backfill                | 1 day    | compliance                    |
-| TASK-14.2  | Console create-row UI               | 1 day    | demo completeness             |
-| TASK-14.3  | Grafana Cloud OTLP                  | 1 day    | production readiness          |
-| TASK-14.4  | Playwright E2E                      | 1–2 days | UI regressions                |
-| TASK-14.5  | Terraform + ECS deploy              | 3–5 days | pilot launch                  |
+| Task         | Title                                          | Scope    | Blocks                        |
+| ------------ | ---------------------------------------------- | -------- | ----------------------------- |
+| TASK-10.1a   | Zod 3 → Zod 4 migration ✅ **done**            | 1 day    | unblocked 10.1b               |
+| TASK-10.1b   | Better Auth schema layer ✅ **partial** landed | 1 day    | tables exist, no wiring yet   |
+| TASK-10.1b.1 | Better Auth wiring (integration pass)          | 5–7 days | almost everything user-facing |
+| TASK-14.1    | Audit chain backfill                           | 1 day    | compliance                    |
+| TASK-14.2    | Console create-row UI                          | 1 day    | demo completeness             |
+| TASK-14.3    | Grafana Cloud OTLP                             | 1 day    | production readiness          |
+| TASK-14.4    | Playwright E2E                                 | 1–2 days | UI regressions                |
+| TASK-14.5    | Terraform + ECS deploy                         | 3–5 days | pilot launch                  |
 
 **Remaining:** ~2 weeks of engineering at steady pace, before Phase 2
 work begins. (TASK-10.1a landed ahead of schedule — Zod 4 was less

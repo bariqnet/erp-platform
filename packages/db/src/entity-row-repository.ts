@@ -12,7 +12,7 @@
 // field via the Admin API requires no DDL — the next INSERT carries
 // the new key in the JSONB body and the next SELECT returns it.
 
-import { type Kysely, type Selectable, type Transaction } from "kysely";
+import { sql, type Kysely, type Selectable, type Transaction } from "kysely";
 
 import { type Database, type OpsEntityRowTable } from "./schema.js";
 import { TenantRepository } from "./tenant-repository.js";
@@ -160,13 +160,18 @@ export class EntityRowRepository extends TenantRepository {
     rowId: string,
     input: PatchEntityRowInput,
   ): Promise<EntityRow | null> {
+    // Use Postgres `now()` so UPDATE timestamps share the same clock
+    // as the INSERT's `DEFAULT now()`. Passing `new Date()` from Node
+    // introduces host-vs-container clock drift (observed ~100 ms on
+    // Docker Desktop on macOS), which made this and softDelete's
+    // updated_at race the creation timestamp under test.
     const updated = await trx
       .updateTable("ops.entity_row")
       .set({
         ...(input.body !== undefined ? { body: JSON.stringify(input.body) } : {}),
         ...(input.status !== undefined ? { status: input.status } : {}),
         ...(input.updated_by !== undefined ? { updated_by: input.updated_by } : {}),
-        updated_at: new Date(),
+        updated_at: sql`now()`,
       })
       .where("tenant_id", "=", tenantId)
       .where("entity_id", "=", entityId)
@@ -204,8 +209,8 @@ export class EntityRowRepository extends TenantRepository {
     const result = await trx
       .updateTable("ops.entity_row")
       .set({
-        deleted_at: new Date(),
-        updated_at: new Date(),
+        deleted_at: sql`now()`,
+        updated_at: sql`now()`,
         ...(actor !== null ? { updated_by: actor } : {}),
       })
       .where("tenant_id", "=", tenantId)
