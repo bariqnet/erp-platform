@@ -82,7 +82,7 @@ its own ADR before code.
 
 ---
 
-## TASK-14.1 — Backfill hash chain on Change Set audit rows
+## TASK-14.1 — Backfill hash chain on Change Set audit rows ✅ DONE
 
 **Goal:** existing Change Set audit writes (TASK-07) landed with
 `before_hash` / `after_hash` = NULL. The new `AuditRepository`
@@ -94,21 +94,24 @@ continuous chain. Close the gap.
 
 **Done when:**
 
-- [ ] `ChangeSetRepository.writeAudit()` is replaced by a call to
+- [x] ~~`ChangeSetRepository.writeAudit()` delegates to
       `AuditRepository.appendInTx(trx, ...)` so every new change-set
-      transition is chained.
-- [ ] A one-shot migration script (`scripts/backfill-audit-chain.ts`)
+      transition is chained.~~
+- [x] ~~A one-shot migration script (`scripts/backfill-audit-chain.ts`)
       walks historical rows where `after_hash IS NULL`, recomputes
       each row's canonical payload + chain, and writes `before_hash`
-      and `after_hash` in tenant order.
-- [ ] The script is idempotent (re-running is a no-op) and covers
-      vendor-level rows (`tenant_id IS NULL`) as their own chain.
-- [ ] Integration test asserts `verifyChain(TENANT)` returns `null`
-      across the unified history after the backfill runs.
+      and `after_hash` in tenant order.~~ (`pnpm db:backfill-audit-chain`
+      with optional `-- --dry`.)
+- [x] ~~The script is idempotent (re-running is a no-op) and covers
+      vendor-level rows (`tenant_id IS NULL`) as their own chain.~~
+- [x] ~~Integration test asserts `verifyChain(TENANT)` returns `null`
+      across the unified history after the backfill runs.~~
+      (6 integration tests in `apps/api/test/integration/audit-
+    backfill.integration.test.ts`.)
 
 **Dependencies:** none; independent of TASK-10.1.
 
-**Scope:** ~150 lines + a migration script; 1 session.
+**Scope:** ~150 lines + a migration script; 1 session. (Shipped.)
 
 ---
 
@@ -256,7 +259,7 @@ sessions. Largest single task in the cleanup list.
 | TASK-10.1a   | Zod 3 → Zod 4 migration ✅ **done**            | 1 day    | unblocked 10.1b               |
 | TASK-10.1b   | Better Auth schema layer ✅ **partial** landed | 1 day    | tables exist, no wiring yet   |
 | TASK-10.1b.1 | Better Auth wiring (integration pass)          | 5–7 days | almost everything user-facing |
-| TASK-14.1    | Audit chain backfill                           | 1 day    | compliance                    |
+| TASK-14.1    | Audit chain backfill ✅ **done**               | 1 day    | —                             |
 | TASK-14.2    | Console create-row UI ✅ **done**              | 1 day    | —                             |
 | TASK-14.3    | Grafana Cloud OTLP                             | 1 day    | production readiness          |
 | TASK-14.4    | Playwright E2E                                 | 1–2 days | UI regressions                |
