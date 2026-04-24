@@ -78,6 +78,22 @@ export class ChangeSetService {
     return this.repo.load(tenantId, change_set_id);
   }
 
+  /**
+   * TASK-21 · list change sets for the tenant, newest first.
+   * Optional status filter for the Config Studio's "Draft /
+   * Proposed / Deployed" tabs.
+   */
+  async list(
+    tenantId: string,
+    params: {
+      readonly status?: ChangeSetRow["status"];
+      readonly limit?: number;
+      readonly offset?: number;
+    },
+  ): Promise<readonly ChangeSetRow[]> {
+    return this.repo.list(tenantId, params);
+  }
+
   async transition(
     input: TransitionInput,
     action: "propose" | "approve" | "deploy" | "rollback" | "revert",

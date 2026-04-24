@@ -30,6 +30,15 @@ export function TopNav({ session }: { readonly session: Session | null }): JSX.E
               >
                 {t(locale, "entities")}
               </Link>
+              <Link
+                href={{ pathname: "/metadata" }}
+                className="text-slate-600 hover:text-brand-600"
+              >
+                {t(locale, "nav_metadata")}
+              </Link>
+              <Link href={{ pathname: "/changes" }} className="text-slate-600 hover:text-brand-600">
+                {t(locale, "nav_changes")}
+              </Link>
               <span className="hidden sm:inline text-slate-400">·</span>
               <span className="hidden sm:inline text-slate-500">
                 {t(locale, "session_banner_as")}{" "}

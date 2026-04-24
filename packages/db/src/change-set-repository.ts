@@ -165,6 +165,42 @@ export class ChangeSetRepository extends TenantRepository {
   }
 
   /**
+   * TASK-21 · list change sets for a tenant, newest first. The
+   * Config Studio's read-only views call this with optional status
+   * filter. `staged_operations` is Zod-parsed per-row via the same
+   * pattern `loadForUpdate` uses to keep the discriminated-union
+   * type narrow.
+   */
+  async list(
+    tenantId: string,
+    params: {
+      readonly status?: ChangeSetStatus;
+      readonly limit?: number;
+      readonly offset?: number;
+    },
+  ): Promise<readonly ChangeSetRow[]> {
+    const limit = params.limit ?? 50;
+    const offset = params.offset ?? 0;
+    return this.runAsTenant(tenantId, async (trx) => {
+      let q = trx
+        .selectFrom("metadata.meta_change_set")
+        .selectAll()
+        .where("tenant_id", "=", tenantId);
+      if (params.status !== undefined) {
+        q = q.where("status", "=", params.status);
+      }
+      const rows = await q.orderBy("created_at", "desc").limit(limit).offset(offset).execute();
+      return rows.map((r) => {
+        const raw: readonly unknown[] = Array.isArray(r.staged_operations)
+          ? r.staged_operations
+          : [];
+        const ops: Operation[] = raw.map((o) => OperationSchema.parse(o));
+        return { ...r, staged_operations: ops };
+      });
+    });
+  }
+
+  /**
    * Move a Change Set through the state machine. For `deploy` and
    * `rollback`, the side-effects (materializing rows, flipping
    * valid_until) happen inside this same transaction. For `propose`,

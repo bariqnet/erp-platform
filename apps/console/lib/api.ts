@@ -122,6 +122,65 @@ export async function getResolvedObject(
   );
 }
 
+// ── TASK-21 · Config Studio read-only views ───────────────────────
+
+export async function listMetadataObjects(session: Session): Promise<readonly MetaObjectRow[]> {
+  const res = await request<{ items: readonly MetaObjectRow[] }>(
+    session,
+    "GET",
+    "/admin/v1/metadata/objects",
+  );
+  return res.items;
+}
+
+export async function getObjectHistory(
+  session: Session,
+  objectId: string,
+): Promise<{ readonly items: readonly MetaObjectRow[] }> {
+  return request<{ items: readonly MetaObjectRow[] }>(
+    session,
+    "GET",
+    `/admin/v1/metadata/objects/${encodeURIComponent(objectId)}/history`,
+  );
+}
+
+export interface ChangeSetSummary {
+  readonly change_set_id: string;
+  readonly status: string;
+  readonly description: string | null;
+  readonly created_by: string | null;
+  readonly created_at: string;
+  readonly approved_by: string | null;
+  readonly approved_at: string | null;
+  readonly deployed_at: string | null;
+  readonly operation_count: number;
+}
+
+export interface ChangeSetDetail extends ChangeSetSummary {
+  readonly operations: readonly Record<string, unknown>[];
+}
+
+export async function listChangeSets(
+  session: Session,
+  params: { readonly status?: string } = {},
+): Promise<readonly ChangeSetSummary[]> {
+  const qs = params.status !== undefined ? `?status=${encodeURIComponent(params.status)}` : "";
+  const res = await request<{ items: readonly ChangeSetSummary[] }>(
+    session,
+    "GET",
+    `/admin/v1/metadata/changes${qs}`,
+  );
+  return res.items;
+}
+
+export async function getChangeSet(session: Session, id: string): Promise<ChangeSetDetail> {
+  return request<ChangeSetDetail>(
+    session,
+    "GET",
+    `/admin/v1/metadata/changes/${encodeURIComponent(id)}`,
+  );
+}
+
 // ── Runtime API ───────────────────────────────────────────────────
 
 export async function listEntityRows(

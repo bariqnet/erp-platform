@@ -7,11 +7,14 @@ import { type TransitionActor } from "@erp/change-set";
 import { Result } from "@erp/core";
 
 import { requireRole } from "../../plugins/require-role.js";
-import { parseBody, parseParams } from "../../plugins/zod-validation.js";
+import { parseBody, parseParams, parseQuery } from "../../plugins/zod-validation.js";
 import {
+  ChangeSetDetailResponseSchema,
   ChangeSetIdParamsSchema,
   CreateChangeSetBodySchema,
   CreateChangeSetResponseSchema,
+  ListChangeSetsQuerySchema,
+  ListChangeSetsResponseSchema,
   SimulateResponseSchema,
   TransitionResponseSchema,
 } from "../../schemas/admin.js";
@@ -90,7 +93,91 @@ export async function registerChangeSetRoutes(
     });
   }
 
+  // ── TASK-21 · read-only endpoints for Config Studio v0 ──────────
+  wiring.registry.registerPath({
+    method: "get",
+    path: "/admin/v1/metadata/changes",
+    tags: ["Admin · Change Sets"],
+    description: "List change sets for the tenant, newest first.",
+    request: { query: ListChangeSetsQuerySchema },
+    responses: {
+      200: {
+        description: "Paginated change set list.",
+        content: { "application/json": { schema: ListChangeSetsResponseSchema } },
+      },
+    },
+  });
+
+  wiring.registry.registerPath({
+    method: "get",
+    path: "/admin/v1/metadata/changes/{id}",
+    tags: ["Admin · Change Sets"],
+    description: "Full detail of a change set, including staged operations.",
+    request: { params: ChangeSetIdParamsSchema },
+    responses: {
+      200: {
+        description: "Change set detail.",
+        content: { "application/json": { schema: ChangeSetDetailResponseSchema } },
+      },
+      404: {
+        description: "Change set not found.",
+        content: { "application/problem+json": { schema: ProblemSchema } },
+      },
+    },
+  });
+
   // ── Handlers ─────────────────────────────────────────────────────
+
+  app.get("/admin/v1/metadata/changes", { schema: {} }, async (request, reply) => {
+    const query = parseQuery(request, ListChangeSetsQuerySchema);
+    // exactOptionalPropertyTypes: build the params object with only
+    // the defined fields so `undefined` values don't leak in.
+    const items = await wiring.service.list(request.appContext.tenantId, {
+      ...(query.status !== undefined ? { status: query.status } : {}),
+      ...(query.limit !== undefined ? { limit: query.limit } : {}),
+      ...(query.offset !== undefined ? { offset: query.offset } : {}),
+    });
+    return reply.code(200).send(
+      ListChangeSetsResponseSchema.parse({
+        items: items.map((row) => ({
+          change_set_id: row.change_set_id,
+          status: row.status,
+          description: row.description,
+          created_by: row.created_by,
+          created_at: row.created_at.toISOString(),
+          approved_by: row.approved_by,
+          approved_at: row.approved_at?.toISOString() ?? null,
+          deployed_at: row.deployed_at?.toISOString() ?? null,
+          operation_count: row.staged_operations.length,
+        })),
+        limit: query.limit ?? 50,
+        offset: query.offset ?? 0,
+      }),
+    );
+  });
+
+  app.get("/admin/v1/metadata/changes/:id", { schema: {} }, async (request, reply) => {
+    const params = parseParams(request, ChangeSetIdParamsSchema);
+    const r = await wiring.service.load(request.appContext.tenantId, params.id);
+    return Result.match(r, {
+      ok: (row) =>
+        reply.code(200).send(
+          ChangeSetDetailResponseSchema.parse({
+            change_set_id: row.change_set_id,
+            status: row.status,
+            description: row.description,
+            created_by: row.created_by,
+            created_at: row.created_at.toISOString(),
+            approved_by: row.approved_by,
+            approved_at: row.approved_at?.toISOString() ?? null,
+            deployed_at: row.deployed_at?.toISOString() ?? null,
+            operation_count: row.staged_operations.length,
+            operations: row.staged_operations.map((op) => ({ ...op })),
+          }),
+        ),
+      err: (e) => sendErrorReply(reply, e),
+    });
+  });
 
   app.post(
     "/admin/v1/metadata/changes",

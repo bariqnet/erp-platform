@@ -7,6 +7,8 @@ const STRINGS = {
   en: {
     app_title: "ERP Platform",
     entities: "Entities",
+    nav_metadata: "Metadata",
+    nav_changes: "Changes",
     login_title: "Sign in",
     login_email: "Email",
     login_password: "Password",
@@ -43,6 +45,8 @@ const STRINGS = {
   ar: {
     app_title: "منصة تخطيط موارد المؤسسات",
     entities: "الكيانات",
+    nav_metadata: "البيانات الوصفية",
+    nav_changes: "التغييرات",
     login_title: "تسجيل الدخول",
     login_email: "البريد الإلكتروني",
     login_password: "كلمة المرور",

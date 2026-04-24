@@ -115,6 +115,42 @@ export const SimulateResponseSchema = z
   })
   .strict();
 
+// ── TASK-21 · read-only Config Studio views ────────────────────────
+
+export const ListChangeSetsQuerySchema = z
+  .object({
+    status: ChangeSetStatusSchema.optional(),
+    limit: z.coerce.number().int().min(1).max(200).optional(),
+    offset: z.coerce.number().int().min(0).optional(),
+  })
+  .strict();
+
+export const ChangeSetSummarySchema = z
+  .object({
+    change_set_id: z.string(),
+    status: ChangeSetStatusSchema,
+    description: z.string().nullable(),
+    created_by: z.string().nullable(),
+    created_at: z.string().datetime(),
+    approved_by: z.string().nullable(),
+    approved_at: z.string().datetime().nullable(),
+    deployed_at: z.string().datetime().nullable(),
+    operation_count: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const ListChangeSetsResponseSchema = z
+  .object({
+    items: z.array(ChangeSetSummarySchema),
+    limit: z.number().int().nonnegative(),
+    offset: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const ChangeSetDetailResponseSchema = ChangeSetSummarySchema.extend({
+  operations: z.array(z.record(z.string(), z.unknown())),
+}).strict();
+
 // ── TASK-17 · template activation ──────────────────────────────────
 
 export const ActivateTemplateBodySchema = z

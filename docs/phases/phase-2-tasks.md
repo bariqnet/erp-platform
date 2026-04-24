@@ -216,7 +216,7 @@ future Automations.
 
 ---
 
-## TASK-21 — Configuration Studio v0 — resolved-metadata views
+## TASK-21 — Configuration Studio v0 — resolved-metadata views ✅ DONE
 
 **Goal:** Phase 2 ships a **read-only** Configuration Studio. Admins
 see the merged view across L0 + L1 + L2 with provenance per field,
@@ -227,20 +227,29 @@ Set via `simulate_change` (which already exists server-side).
 
 **Done when:**
 
-- [ ] `apps/console/app/metadata/[id]/page.tsx` shows the resolved
+- [x] ~~`apps/console/app/metadata/[id]/page.tsx` shows the resolved
       body with a **Provenance** column indicating which layer each
-      field came from. L2 overrides are highlighted.
-- [ ] `.../history/page.tsx` shows the `GET /admin/v1/metadata/objects/:id/history`
-      output as a timeline with change_set_id links.
-- [ ] Change-set detail page
-      (`apps/console/app/changes/[id]/page.tsx`) lists staged
-      operations + the simulate output side-by-side ("before / after").
-- [ ] No write actions yet — those land in Phase 3's full Studio.
+      field came from. L2 overrides are highlighted.~~ Plus the
+      `/metadata` index page grouping objects by type + a per-row
+      layer badge.
+- [x] ~~`.../history/page.tsx` shows the `GET /admin/v1/metadata/objects/:id/history`
+      output as a timeline with change_set_id links.~~ Embedded as a
+      section on the resolved page rather than a separate route.
+- [x] ~~Change-set detail page (`apps/console/app/changes/[id]/page.tsx`)
+      lists staged operations + the simulate output side-by-side.~~
+      V0 ships the operations; the simulate POST is a write the
+      Phase-3 edit flow will expose as a preview form.
+- [x] ~~No write actions yet — those land in Phase 3's full Studio.~~
 
-**Dependencies:** TASK-10.1 (auth) — no deep dep on other Phase 2
-tasks, can run in parallel with TASK-17/18.
+**Also shipped:** new `GET /admin/v1/metadata/changes` (list with
+status filter) + `GET /admin/v1/metadata/changes/:id` (detail) —
+without them the Studio wouldn't have data to render.
+`ChangeSetRepository.list` + `ChangeSetService.list` added. TopNav
+grows Metadata + Changes entries (ar/en).
 
-**Scope:** ~600 lines; 2 sessions.
+**Dependencies:** TASK-10.1 (auth) ✅. Parallel with TASK-17/18.
+
+**Scope:** ~700 lines; 1 session. (Shipped.)
 
 ---
 
@@ -374,19 +383,19 @@ sessions total.
 
 ## Summary
 
-| #   | Title                            | Scope | Parallel with      |
-| --- | -------------------------------- | ----- | ------------------ |
-| 15  | Lifecycle guards ✅ **done**     | 1 d   | unblocks 16        |
-| 16  | Full Workflow engine             | 3–4 d | 21                 |
-| 17  | L1 layer in resolver ✅ **done** | 1 d   | unblocks 18        |
-| 18  | Package format + installer       | 2–3 d | 16                 |
-| 19  | NATS JetStream adapter           | 2–3 d | 17, 21             |
-| 20  | L3 scripting sandbox             | 3 d   | —                  |
-| 21  | Config Studio v0 (read-only)     | 2 d   | 15–19 all parallel |
-| 22  | Field-level permissions          | 1–2 d | 23                 |
-| 23  | Record-level predicates          | 2–3 d | 22                 |
-| 24  | Storage strategy migrator        | 3 d   | 19                 |
-| 25  | AI Specialist v0 (+ RFC-002)     | 5–6 d | final task         |
+| #   | Title                            | Scope | Parallel with       |
+| --- | -------------------------------- | ----- | ------------------- |
+| 15  | Lifecycle guards ✅ **done**     | 1 d   | unblocks 16         |
+| 16  | Full Workflow engine             | 3–4 d | 21                  |
+| 17  | L1 layer in resolver ✅ **done** | 1 d   | unblocks 18         |
+| 18  | Package format + installer       | 2–3 d | 16                  |
+| 19  | NATS JetStream adapter           | 2–3 d | 17, 21              |
+| 20  | L3 scripting sandbox             | 3 d   | —                   |
+| 21  | Config Studio v0 ✅ **done**     | 1 d   | parallel with 16/18 |
+| 22  | Field-level permissions          | 1–2 d | 23                  |
+| 23  | Record-level predicates          | 2–3 d | 22                  |
+| 24  | Storage strategy migrator        | 3 d   | 19                  |
+| 25  | AI Specialist v0 (+ RFC-002)     | 5–6 d | final task          |
 
 **Phase 2 total:** ~28–35 engineering days at steady pace (RFC §16.5
 scopes Phase 2 at 12–15 engineers × 4 months; we're doing it at 1×
