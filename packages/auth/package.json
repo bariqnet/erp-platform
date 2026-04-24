@@ -1,0 +1,41 @@
+{
+  "name": "@erp/auth",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Better Auth wiring — the only place apps/packages interact with better-auth directly (ADR-0004).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf dist .turbo",
+    "dev": "tsc -b --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "echo 'integration tests live in apps/api/test/integration/auth.integration.test.ts'"
+  },
+  "dependencies": {
+    "@better-auth/kysely-adapter": "1.6.8",
+    "@erp/core": "workspace:*",
+    "@erp/db": "workspace:*",
+    "better-auth": "1.6.8",
+    "kysely": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@erp/config": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

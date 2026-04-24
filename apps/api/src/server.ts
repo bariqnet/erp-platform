@@ -88,8 +88,10 @@ export async function buildServer(input: BuildServerInput = {}): Promise<ServerH
 
   await app.register(telemetryPlugin, { logger });
   await app.register(errorsPlugin);
-  const authOpts: { required?: boolean } =
-    input.authRequired !== undefined ? { required: input.authRequired } : {};
+  const authOpts: {
+    db: Kysely<Database>;
+    required?: boolean;
+  } = input.authRequired !== undefined ? { db, required: input.authRequired } : { db };
   await app.register(authPlugin, authOpts);
   await app.register(tenantContextPlugin);
   await app.register(rateLimitPlugin, {});

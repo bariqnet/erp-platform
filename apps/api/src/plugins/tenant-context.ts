@@ -33,6 +33,11 @@ const tenantContextPlugin: FastifyPluginAsync<TenantContextPluginOptions> = asyn
     if (request.routeOptions.url === undefined) return;
     const path = request.url.split("?")[0] ?? request.url;
     if (publicRoutes.has(path)) return;
+    // Better Auth owns sign-up / sign-in / refresh / sign-out. A tenant
+    // isn't known yet on sign-in, so this plugin cannot require the
+    // header here. The auth plugin's preHandler already bypasses
+    // /api/auth/* — we mirror that.
+    if (path.startsWith("/api/auth/")) return;
 
     const headerValue = request.headers["x-tenant-id"];
     const tenantId = typeof headerValue === "string" ? headerValue : "";

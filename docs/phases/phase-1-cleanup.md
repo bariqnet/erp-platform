@@ -49,36 +49,18 @@ auth with Better Auth (CLAUDE.md §2). Zod 4 is now in place
       `UserTenantRepository` for membership lookups.~~
 - [x] ~~Kysely 0.28.16 bumped across the workspace (Better Auth's
       peer-dep track).~~
-- [ ] **TASK-10.1b.1 — Better Auth wiring** (the hard integration):
-  - `packages/auth` package wraps `better-auth` with a multi-tenant
-    session enhancer.
-  - `apps/api/src/plugins/auth.ts` mounts Better Auth at
-    `/api/auth/*` and resolves sessions via the Fastify node
-    handler adapter.
-  - Resolved: how to reconcile Better Auth's kysely-adapter with
-    our shared Kysely instance (first attempt hit `dialect.createDriver
-is not a function` when passing `{ dialect: kyselyInstance, type }`;
-    need to use `{ db: kyselyInstance, type }` shape AND verify
-    schema-qualified table-name routing works end-to-end).
-  - Resolved: whether Better Auth's `modelName: "auth.user"` routes
-    correctly to the schema-qualified identifier or needs a custom
-    adapter / `SET search_path`.
-  - Every admin + runtime integration test using dev-header auth
-    switches to real sessions via a `createTestSession(tenantId,
-roles)` fixture.
-  - Console's login form → Better Auth endpoint; `lib/session.ts`
-    reads the BA cookie instead of the JSON dev cookie.
-  - ADR-0002 status flips to `Superseded by ADR-NNNN`.
+- [x] ~~**TASK-10.1b.1 — Better Auth wiring** (the hard integration):~~ **DONE** — see [ADR-0004](../adr/0004-better-auth-wiring.md). Shipped in one focused session (not 5-7; the upstream snag was the cookie-signature base64 flavor, which resolved in one iteration once the integration-test byte-diff surfaced it).
+  - [x] ~~`packages/auth` package wraps `better-auth` with a multi-tenant session enhancer.~~ `@erp/auth` exports `createAuth`, `resolveSession`, `resolveTenantContext`, `createTestSession`.
+  - [x] ~~`apps/api/src/plugins/auth.ts` mounts Better Auth at `/api/auth/*` and resolves sessions via the Fastify node handler adapter.~~ Real sessions resolve first; dev-header fallback kept for the migration window.
+  - [x] ~~Reconcile Better Auth's kysely-adapter with our shared Kysely instance.~~ `kyselyAdapter(sharedKysely, { type: "postgres" })` directly as `database` works — the library's `DBAdapterInstance` type is the function signature the adapter returns.
+  - [x] ~~Better Auth's `modelName: "auth.user"` routes correctly.~~ Kysely resolves the dotted name as a schema-qualified identifier. Verified end-to-end in the integration test.
+  - [ ] **Deferred to TASK-10.1b.2**: migrate every admin + runtime integration test off dev-header auth onto `createTestSession`. 115+ tests; one PR per file. When the last file migrates, delete the dev-header fallback from `plugins/auth.ts`.
+  - [ ] **Deferred to TASK-10.1b.2**: console login form → Better Auth endpoint; `lib/session.ts` reads the BA cookie instead of the JSON dev cookie.
+  - [x] ~~ADR-0002 status flips to `Superseded by ADR-NNNN`.~~ Flipped; points at ADR-0004.
 
-**Dependencies:** TASK-10.1b.1 blocks TASK-14.2, TASK-14.5, and most
-Phase 2 tasks that touch user-facing surface area. The schema-layer
-work (what landed here) unblocks nothing immediately but means the
-tables exist when TASK-10.1b.1 runs.
+**Dependencies:** TASK-10.1b.1 unblocks TASK-10.1b.2 (the mechanical test migration) which in turn unblocks pilot-readiness of auth-sensitive surface area. Phase 2 tasks that don't touch auth are not blocked by 10.1b.2.
 
-**Scope:** TASK-10.1b schema-layer (landed): ~1 session.
-TASK-10.1b.1 wiring: **5–7 focused sessions** including integration
-tests. This is materially larger than the original estimate. Worth
-its own ADR before code.
+**Scope:** TASK-10.1b schema-layer (landed): ~1 session. TASK-10.1b.1 wiring (landed this round): ~1 session (ADR-0004 + @erp/auth + plugin rewrite + 5 integration tests + full-suite regression). TASK-10.1b.2 (test migration + console swap + fallback removal): ~3 sessions of mechanical refactor.
 
 ---
 
@@ -283,17 +265,16 @@ the staging bring-up.
 
 ## Summary
 
-| Task         | Title                                          | Scope    | Blocks                        |
-| ------------ | ---------------------------------------------- | -------- | ----------------------------- |
-| TASK-10.1a   | Zod 3 → Zod 4 migration ✅ **done**            | 1 day    | unblocked 10.1b               |
-| TASK-10.1b   | Better Auth schema layer ✅ **partial** landed | 1 day    | tables exist, no wiring yet   |
-| TASK-10.1b.1 | Better Auth wiring (integration pass)          | 5–7 days | almost everything user-facing |
-| TASK-14.1    | Audit chain backfill ✅ **done**               | 1 day    | —                             |
-| TASK-14.2    | Console create-row UI ✅ **done**              | 1 day    | —                             |
-| TASK-14.3    | Grafana Cloud OTLP ✅ **done**                 | 1 day    | —                             |
-| TASK-14.4    | Playwright E2E ✅ **done**                     | 1 day    | —                             |
-| TASK-14.5    | Terraform + ECS deploy ✅ **code done**        | 1 day    | operator bring-up remains     |
+| Task         | Title                                          | Scope  | Blocks                      |
+| ------------ | ---------------------------------------------- | ------ | --------------------------- |
+| TASK-10.1a   | Zod 3 → Zod 4 migration ✅ **done**            | 1 day  | unblocked 10.1b             |
+| TASK-10.1b   | Better Auth schema layer ✅ **partial** landed | 1 day  | tables exist, no wiring yet |
+| TASK-10.1b.1 | Better Auth wiring ✅ **done**                 | 1 day  | unblocks 10.1b.2            |
+| TASK-10.1b.2 | Test-fixture migration + console login swap    | 3 days | prod auth hardening         |
+| TASK-14.1    | Audit chain backfill ✅ **done**               | 1 day  | —                           |
+| TASK-14.2    | Console create-row UI ✅ **done**              | 1 day  | —                           |
+| TASK-14.3    | Grafana Cloud OTLP ✅ **done**                 | 1 day  | —                           |
+| TASK-14.4    | Playwright E2E ✅ **done**                     | 1 day  | —                           |
+| TASK-14.5    | Terraform + ECS deploy ✅ **code done**        | 1 day  | operator bring-up remains   |
 
-**Remaining:** ~2 weeks of engineering at steady pace, before Phase 2
-work begins. (TASK-10.1a landed ahead of schedule — Zod 4 was less
-breaking than feared.)
+**Remaining:** TASK-10.1b.2 (mechanical test migration + console login swap) + operator step for TASK-14.5. Everything else in Phase-1 scope is shipped. TASK-10.1b.1 landed in one focused session (ADR-0004 got the integration right first try after the cookie-signature encoding was surfaced by the integration test).

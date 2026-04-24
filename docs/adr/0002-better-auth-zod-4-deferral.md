@@ -1,8 +1,6 @@
 # 0002 — Better Auth Integration Deferred Pending Zod 4 Migration
 
-**Status:** Partly superseded by [ADR-0003](./0003-zod-4-migration.md).
-Zod 4 migration is now complete (TASK-10.1a). Better Auth wiring
-still pending as TASK-10.1b.
+**Status:** Superseded. Zod 4 migration tracked by [ADR-0003](./0003-zod-4-migration.md) (done, TASK-10.1a). Better Auth wiring decisions tracked by [ADR-0004](./0004-better-auth-wiring.md) (done, TASK-10.1b.1). This ADR remains as the historical record of why Phase 1 shipped with the dev-header placeholder.
 **Date:** 2026-04-23
 
 ## Context

@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "8.5.0",
+    "@erp/auth": "workspace:*",
     "@erp/change-set": "workspace:*",
     "@erp/core": "workspace:*",
     "@erp/db": "workspace:*",
