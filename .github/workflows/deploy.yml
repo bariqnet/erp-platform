@@ -1,0 +1,179 @@
+name: Deploy
+
+# Triggered on every push to main. Builds the four service images,
+# pushes to ECR with the commit sha as tag, then forces ECS to
+# redeploy each service.
+#
+# Rollback: re-run this workflow against the previous commit sha, OR
+# `aws ecs update-service --service <svc> --task-definition <older>`
+# (see docs/runbooks/production-deploy.md §7).
+#
+# Auth to AWS: OIDC role. The role must trust the repo's OIDC
+# identity (infra/terraform/bootstrap README walks through setup).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: staging
+        type: choice
+        options: [staging, prod]
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || 'staging' }}
+  cancel-in-progress: false # Don't cancel a mid-rollout deploy.
+
+permissions:
+  id-token: write # OIDC.
+  contents: read
+
+env:
+  AWS_REGION: eu-central-1
+  ENVIRONMENT: ${{ github.event.inputs.environment || 'staging' }}
+
+jobs:
+  build:
+    name: Build & push images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: api
+            dockerfile: infra/docker/Dockerfile.api
+          - service: kernel
+            dockerfile: infra/docker/Dockerfile.kernel
+          - service: worker
+            dockerfile: infra/docker/Dockerfile.worker
+          - service: console
+            dockerfile: infra/docker/Dockerfile.console
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/erp-${{ matrix.service }}:sha-${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/erp-${{ matrix.service }}:latest
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          provenance: false
+
+  migrate:
+    name: Apply DB migrations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: build
+
+    # Migrations run from the runner with a SecretsManager-sourced
+    # DATABASE_URL. Requires the runner's OIDC role to have
+    # secretsmanager:GetSecretValue on the staging/prod secret.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+          run_install: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve DATABASE_URL
+        id: secret
+        run: |
+          db_url=$(aws secretsmanager get-secret-value \
+            --secret-id "erp-${{ env.ENVIRONMENT }}/database_url" \
+            --query SecretString --output text)
+          # Add DB to $GITHUB_ENV via a masked value to avoid echo.
+          echo "::add-mask::$db_url"
+          echo "DATABASE_URL=$db_url" >> "$GITHUB_ENV"
+
+      - name: Apply migrations
+        run: pnpm db:migrate
+
+  deploy:
+    name: Update ECS services
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: migrate
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, kernel, worker]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fetch current task definition
+        id: td
+        run: |
+          family="erp-${{ env.ENVIRONMENT }}-${{ matrix.service }}"
+          aws ecs describe-task-definition \
+            --task-definition "$family" \
+            --query 'taskDefinition' > td.json
+          echo "family=$family" >> "$GITHUB_OUTPUT"
+
+      - name: Render new task definition with commit image
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: td.json
+          container-name: ${{ matrix.service }}
+          image: ${{ secrets.ECR_REGISTRY }}/erp-${{ matrix.service }}:sha-${{ github.sha }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: erp-${{ env.ENVIRONMENT }}-${{ matrix.service }}
+          cluster: erp-${{ env.ENVIRONMENT }}-cluster
+          wait-for-service-stability: true
+          wait-for-minutes: 10

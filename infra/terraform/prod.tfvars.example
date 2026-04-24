@@ -1,0 +1,30 @@
+# Production overrides. Copy to `prod.tfvars` (gitignored) and fill
+# in `acm_certificate_arn` + `api_domain_name` before the first
+# `terraform apply`.
+#
+#   cp infra/terraform/prod.tfvars.example infra/terraform/prod.tfvars
+#   # edit prod.tfvars
+#   terraform apply -var-file=prod.tfvars
+#
+# `prod.tfvars` is gitignored — never commit cert ARNs or domain
+# names that leak tenant identity.
+
+environment              = "prod"
+rds_instance_class       = "db.t4g.medium"
+rds_allocated_storage_gb = 50
+rds_multi_az             = true
+rds_deletion_protection  = true
+rds_backup_retention_days = 14
+redis_node_type          = "cache.t4g.medium"
+redis_num_nodes          = 2
+api_cpu                  = 1024
+api_memory               = 2048
+api_desired_count        = 3
+kernel_cpu               = 1024
+kernel_memory            = 2048
+kernel_desired_count     = 2
+worker_cpu               = 512
+worker_memory            = 1024
+worker_desired_count     = 2
+acm_certificate_arn      = "arn:aws:acm:eu-central-1:<ACCOUNT>:certificate/<UUID>"
+api_domain_name          = "api.erp.example.com"

@@ -1,0 +1,47 @@
+# Inputs the Dockerfiles never need. Keeping this tight saves
+# hundreds of megabytes off the `COPY . .` stage and makes builds
+# 2-5× faster — every file here skips the network round-trip between
+# the CLI and the buildkit daemon.
+#
+# Pattern: allowlist-oriented thinking. Start by assuming a path is
+# needed; add it here only when you've confirmed none of the four
+# Dockerfiles reference it.
+
+# Dev/build caches — never needed in a build context.
+.git
+.github
+.turbo
+.next
+**/.next
+**/dist
+**/coverage
+**/node_modules
+**/.vitest-cache
+
+# Local editor + OS noise.
+.idea
+.vscode
+.DS_Store
+
+# Test outputs.
+playwright-report
+test-results
+apps/console/test
+
+# Environment files — secrets live in AWS Secrets Manager, never
+# baked into images.
+.env
+.env.local
+.env.*.local
+
+# Logs.
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Local runbooks don't belong in a container.
+docs
+infra/terraform
+
+# Docker compose is for local only.
+infra/docker/compose.dev.yml

@@ -43,3 +43,14 @@ yarn-error.log*
 # Misc
 *.pid
 *.seed
+
+# Terraform — lockfile is committed, state + actual tfvars are not.
+infra/terraform/.terraform/
+infra/terraform/*/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.backup
+infra/terraform/*/*.tfstate
+infra/terraform/*/*.tfstate.backup
+infra/terraform/prod.tfvars
+infra/terraform/*.auto.tfvars
+infra/terraform/crash.log

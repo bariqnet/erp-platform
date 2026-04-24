@@ -1,0 +1,91 @@
+#syntax=docker/dockerfile:1.7
+
+# apps/console — Next.js admin console.
+#
+# Build:
+#   docker build -f infra/docker/Dockerfile.console -t erp-console:latest .
+#
+# Run:
+#   docker run --rm \
+#     -e API_URL=https://api.erp.example.com \
+#     -e PORT=3002 \
+#     -p 3002:3002 erp-console:latest
+#
+# Uses Next.js's `output: "standalone"` (set in apps/console/
+# next.config.mjs). That emits `.next/standalone/` — a self-contained
+# Node server with only the deps the app actually traces — plus
+# `.next/static/` and `public/` which we copy in separately.
+#
+# Image size is ~170 MB (alpine + node + the traced app). The
+# console never bundles @erp/db, pino, fastify — Next's
+# file-tracer keeps it to the actual browser + server-component
+# code path.
+
+ARG NODE_VERSION=20.18.1
+ARG PNPM_VERSION=9.15.4
+
+# ── deps ────────────────────────────────────────────────────────
+FROM node:${NODE_VERSION}-alpine AS deps
+ARG PNPM_VERSION
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+WORKDIR /repo
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY packages/config/package.json packages/config/
+COPY packages/core/package.json packages/core/
+COPY packages/change-set/package.json packages/change-set/
+COPY packages/db/package.json packages/db/
+COPY packages/events/package.json packages/events/
+COPY packages/i18n/package.json packages/i18n/
+COPY packages/kernel-runtime/package.json packages/kernel-runtime/
+COPY packages/metadata/package.json packages/metadata/
+COPY packages/telemetry/package.json packages/telemetry/
+COPY packages/ui-kit/package.json packages/ui-kit/
+COPY apps/api/package.json apps/api/
+COPY apps/console/package.json apps/console/
+COPY apps/kernel/package.json apps/kernel/
+COPY apps/worker/package.json apps/worker/
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# ── build ───────────────────────────────────────────────────────
+# Next.js traces dependencies at build time; it needs the whole
+# workspace source tree so @erp/core, @erp/i18n, @erp/ui-kit
+# (which the console imports) can compile.
+FROM deps AS build
+WORKDIR /repo
+COPY packages/ packages/
+COPY apps/ apps/
+COPY scripts/ scripts/
+COPY tsconfig.json ./
+RUN pnpm run build
+
+# ── runtime ─────────────────────────────────────────────────────
+# Standalone output lives at /repo/apps/console/.next/standalone/
+# with the repo-root-relative layout preserved (outputFileTracingRoot
+# in next.config.mjs points at the monorepo root). Copy the whole
+# standalone tree so workspace dep paths still resolve.
+FROM node:${NODE_VERSION}-alpine AS runtime
+
+RUN apk add --no-cache tini \
+  && addgroup -S erp \
+  && adduser -S -G erp -u 10001 erp
+
+WORKDIR /app
+COPY --from=build --chown=erp:erp /repo/apps/console/.next/standalone/ ./
+COPY --from=build --chown=erp:erp /repo/apps/console/.next/static/ ./apps/console/.next/static/
+# apps/console/public/ does not exist today (no static assets yet) —
+# uncomment when a /public directory lands.
+# COPY --from=build --chown=erp:erp /repo/apps/console/public/ ./apps/console/public/
+
+ENV NODE_ENV=production \
+    NODE_OPTIONS="--enable-source-maps" \
+    PORT=3002 \
+    HOSTNAME=0.0.0.0
+
+USER erp
+EXPOSE 3002
+
+ENTRYPOINT ["/sbin/tini", "--"]
+# Next.js's standalone output expects to be invoked via its own
+# server.js — emitted at apps/console/server.js in the trace root.
+CMD ["node", "apps/console/server.js"]

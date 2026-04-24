@@ -1,0 +1,76 @@
+#syntax=docker/dockerfile:1.7
+
+# apps/kernel — Application Kernel service (metadata resolver + L1/L2
+# cache).
+#
+# Build:
+#   docker build -f infra/docker/Dockerfile.kernel -t erp-kernel:latest .
+#
+# Run:
+#   docker run --rm \
+#     -e DATABASE_URL=postgres://erp:erp@host.docker.internal:5432/erp_dev \
+#     -e REDIS_URL=redis://host.docker.internal:6379 \
+#     -e KERNEL_PORT=4100 \
+#     -p 4100:4100 erp-kernel:latest
+#
+# Stages mirror Dockerfile.api — a single APP_DIR build-arg is the
+# only difference. See Dockerfile.api for the stage-by-stage
+# rationale.
+
+ARG NODE_VERSION=20.18.1
+ARG PNPM_VERSION=9.15.4
+ARG APP_DIR=apps/kernel
+
+FROM node:${NODE_VERSION}-alpine AS deps
+ARG PNPM_VERSION
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+WORKDIR /repo
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY packages/config/package.json packages/config/
+COPY packages/core/package.json packages/core/
+COPY packages/change-set/package.json packages/change-set/
+COPY packages/db/package.json packages/db/
+COPY packages/events/package.json packages/events/
+COPY packages/i18n/package.json packages/i18n/
+COPY packages/kernel-runtime/package.json packages/kernel-runtime/
+COPY packages/metadata/package.json packages/metadata/
+COPY packages/telemetry/package.json packages/telemetry/
+COPY packages/ui-kit/package.json packages/ui-kit/
+COPY apps/api/package.json apps/api/
+COPY apps/console/package.json apps/console/
+COPY apps/kernel/package.json apps/kernel/
+COPY apps/worker/package.json apps/worker/
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+FROM deps AS build
+WORKDIR /repo
+COPY packages/ packages/
+COPY apps/ apps/
+COPY scripts/ scripts/
+COPY tsconfig.json ./
+RUN pnpm run build
+
+FROM build AS prune
+ARG APP_DIR
+WORKDIR /repo
+RUN pnpm --filter "./${APP_DIR}" deploy --prod --legacy /prod/app
+
+FROM node:${NODE_VERSION}-alpine AS runtime
+RUN apk add --no-cache tini \
+  && addgroup -S erp \
+  && adduser -S -G erp -u 10001 erp
+
+WORKDIR /app
+COPY --from=prune --chown=erp:erp /prod/app/ ./
+
+ENV NODE_ENV=production \
+    NODE_OPTIONS="--enable-source-maps" \
+    KERNEL_PORT=4100 \
+    HOST=0.0.0.0
+
+USER erp
+EXPOSE 4100
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "dist/index.js"]

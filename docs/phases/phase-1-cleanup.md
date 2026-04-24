@@ -224,7 +224,7 @@ CI workflow); 1 session. (Shipped.)
 
 ---
 
-## TASK-14.5 — Production infra scaffold (Terraform + ECS Fargate)
+## TASK-14.5 — Production infra scaffold (Terraform + ECS Fargate) ✅ DONE (code); ⏳ operator bring-up pending
 
 **Goal:** CLAUDE.md §2 pins ECS Fargate + RDS + ElastiCache + S3 in
 Frankfurt. Today there is no Terraform. Lay down the minimum viable
@@ -235,7 +235,7 @@ command instead of a yak-shave.
 
 **Done when:**
 
-- [ ] `infra/terraform/` created with:
+- [x] ~~`infra/terraform/` created with:
   - `backend.tf` (S3 state bucket + DynamoDB lock table; wizard to
     bootstrap them once per account)
   - `vpc.tf` (VPC + public + private subnets + NAT)
@@ -246,24 +246,38 @@ command instead of a yak-shave.
   - `ecr.tf` (one repo per service)
   - `alb.tf` (one public ALB in front of api, one internal for kernel)
   - `secrets.tf` (AWS Secrets Manager entries for DATABASE_URL,
-    REDIS_URL, BETTER_AUTH_SECRET, GRAFANA_CLOUD_OTLP_HEADERS)
-- [ ] `infra/docker/Dockerfile.api`, `Dockerfile.kernel`,
-      `Dockerfile.worker` produce distroless or alpine-based images
-      that `node dist/index.js` as a non-root user.
-- [ ] `infra/docker/Dockerfile.console` (Next.js standalone output).
-- [ ] `.github/workflows/deploy.yml` builds images, pushes to ECR,
-      updates the ECS service revisions on `main` merges.
-- [ ] `docs/runbooks/production-deploy.md` documents first-time setup
+    REDIS_URL, BETTER_AUTH_SECRET, GRAFANA_CLOUD_OTLP_HEADERS)~~
+    (Plus `versions.tf`, `providers.tf`, `variables.tf`, `locals.tf`,
+    `security-groups.tf`, `outputs.tf`, `staging.tfvars`,
+    `prod.tfvars.example`, and a `bootstrap/` sub-module for the
+    remote-state bucket.)
+- [x] ~~`infra/docker/Dockerfile.api`, `Dockerfile.kernel`, `Dockerfile.worker` produce distroless or alpine-based images that `node dist/index.js` as a non-root user.~~ Alpine + tini + non-root `erp` user; multi-stage with `pnpm deploy --prod --legacy` to prune dev deps.
+- [x] ~~`infra/docker/Dockerfile.console` (Next.js standalone output).~~
+      (`next.config.mjs` now sets `output: "standalone"` with
+      `outputFileTracingRoot` → monorepo root.)
+- [x] ~~`.github/workflows/deploy.yml` builds images, pushes to ECR,
+      updates the ECS service revisions on `main` merges.~~ (Plus a
+      `terraform.yml` fmt/validate check on every PR touching
+      `infra/terraform/**`.)
+- [x] ~~`docs/runbooks/production-deploy.md` documents first-time setup
       (DNS, TLS cert via ACM, secrets population, `terraform apply`
-      order, rollback via ECS revision pinning).
-- [ ] Staging environment brought up end-to-end once to prove the
-      pipeline works; teardown recorded.
+      order, rollback via ECS revision pinning).~~ (Nine sections:
+      bootstrap → first apply → secret population → first deploy →
+      seed → DNS+TLS → Grafana OTLP → rollback → hardening +
+      teardown.)
+- [ ] **Staging environment brought up end-to-end once to prove the
+      pipeline works; teardown recorded.** Requires AWS credentials
+      (the one step Claude cannot do autonomously). Operator walks
+      through the runbook once.
 
-**Dependencies:** TASK-10.1 (auth needed before public IP), TASK-14.3
-(observability wanted in prod from day one).
+**Dependencies:** TASK-10.1 (auth needed before public IP — production
+deploy can run HTTP-only until Better Auth lands; dev cookie still
+works in that window), TASK-14.3 (observability wanted in prod from
+day one — ✅ done).
 
-**Scope:** ~1,500 lines of HCL + 3–4 Dockerfiles + workflow; 3–5
-sessions. Largest single task in the cleanup list.
+**Scope:** ~1,500 lines of HCL + 4 Dockerfiles + two workflows + the
+runbook; ~1 session for the code, a separate operator session for
+the staging bring-up.
 
 ---
 
@@ -278,7 +292,7 @@ sessions. Largest single task in the cleanup list.
 | TASK-14.2    | Console create-row UI ✅ **done**              | 1 day    | —                             |
 | TASK-14.3    | Grafana Cloud OTLP ✅ **done**                 | 1 day    | —                             |
 | TASK-14.4    | Playwright E2E ✅ **done**                     | 1 day    | —                             |
-| TASK-14.5    | Terraform + ECS deploy                         | 3–5 days | pilot launch                  |
+| TASK-14.5    | Terraform + ECS deploy ✅ **code done**        | 1 day    | operator bring-up remains     |
 
 **Remaining:** ~2 weeks of engineering at steady pace, before Phase 2
 work begins. (TASK-10.1a landed ahead of schedule — Zod 4 was less

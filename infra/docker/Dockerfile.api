@@ -1,0 +1,94 @@
+#syntax=docker/dockerfile:1.7
+
+# apps/api — Fastify HTTP service (Admin API + Runtime API).
+#
+# Build:
+#   docker build -f infra/docker/Dockerfile.api -t erp-api:latest .
+#
+# Run:
+#   docker run --rm \
+#     -e DATABASE_URL=postgres://erp:erp@host.docker.internal:5432/erp_dev \
+#     -e REDIS_URL=redis://host.docker.internal:6379 \
+#     -e PORT=4000 \
+#     -p 4000:4000 erp-api:latest
+#
+# Stages:
+#   deps    — pnpm install with the full workspace manifest set.
+#   build   — `pnpm -r build` compiles every package + app.
+#   prune   — `pnpm deploy --prod --legacy` packs apps/api + its
+#             runtime-only deps into a standalone tree.
+#   runtime — alpine + node 20 + non-root `erp` user. tini is PID 1
+#             so SIGTERM reaches Fastify for graceful shutdown.
+#
+# Final image is ~180 MB. To shrink to ~100 MB switch the runtime
+# base to `gcr.io/distroless/nodejs20-debian12` — the tradeoff is no
+# shell for live debugging.
+
+ARG NODE_VERSION=20.18.1
+ARG PNPM_VERSION=9.15.4
+ARG APP_DIR=apps/api
+
+# ── deps ────────────────────────────────────────────────────────
+FROM node:${NODE_VERSION}-alpine AS deps
+ARG PNPM_VERSION
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+WORKDIR /repo
+
+# Copy every package.json first so `pnpm install` layers cache well:
+# a change to source but not to manifests reuses this layer.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY packages/config/package.json packages/config/
+COPY packages/core/package.json packages/core/
+COPY packages/change-set/package.json packages/change-set/
+COPY packages/db/package.json packages/db/
+COPY packages/events/package.json packages/events/
+COPY packages/i18n/package.json packages/i18n/
+COPY packages/kernel-runtime/package.json packages/kernel-runtime/
+COPY packages/metadata/package.json packages/metadata/
+COPY packages/telemetry/package.json packages/telemetry/
+COPY packages/ui-kit/package.json packages/ui-kit/
+COPY apps/api/package.json apps/api/
+COPY apps/console/package.json apps/console/
+COPY apps/kernel/package.json apps/kernel/
+COPY apps/worker/package.json apps/worker/
+
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# ── build ───────────────────────────────────────────────────────
+FROM deps AS build
+WORKDIR /repo
+COPY packages/ packages/
+COPY apps/ apps/
+COPY scripts/ scripts/
+COPY tsconfig.json ./
+RUN pnpm run build
+
+# ── prune ───────────────────────────────────────────────────────
+FROM build AS prune
+ARG APP_DIR
+WORKDIR /repo
+# --legacy keeps node_modules next to package.json (pnpm 9 default
+# dissociates them); Node resolves without env tweaks.
+RUN pnpm --filter "./${APP_DIR}" deploy --prod --legacy /prod/app
+
+# ── runtime ─────────────────────────────────────────────────────
+FROM node:${NODE_VERSION}-alpine AS runtime
+
+RUN apk add --no-cache tini \
+  && addgroup -S erp \
+  && adduser -S -G erp -u 10001 erp
+
+WORKDIR /app
+COPY --from=prune --chown=erp:erp /prod/app/ ./
+
+ENV NODE_ENV=production \
+    NODE_OPTIONS="--enable-source-maps" \
+    PORT=4000 \
+    HOST=0.0.0.0
+
+USER erp
+EXPOSE 4000
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "dist/index.js"]
