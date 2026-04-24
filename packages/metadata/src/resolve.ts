@@ -136,12 +136,18 @@ export async function resolve<TBody = Record<string, unknown>>(
 // ── Helpers ───────────────────────────────────────────────────────────
 
 /**
- * L0/L1 rows are vendor-global and carry `tenant_id = null` in the DB.
- * L2+ rows are tenant-scoped. Translate the resolver's tenant_id to
- * what the store expects at each layer.
+ * Translate the resolver's tenant_id to what the store expects at
+ * each layer.
+ *
+ * - L0 rows are vendor-global and carry `tenant_id = null` in the DB;
+ *   no tenant context needed.
+ * - L1 rows are also vendor-global but scoped by `template_id`. The
+ *   store needs the tenant_id to look up which template is activated
+ *   for this tenant (TASK-17).
+ * - L2+ rows are tenant-scoped.
  */
 function tenantIdForLayer(layer: Layer, tenant_id: string): string | null {
-  if (layer === "L0" || layer === "L1") return null;
+  if (layer === "L0") return null;
   return tenant_id;
 }
 

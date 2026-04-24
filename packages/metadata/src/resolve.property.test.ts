@@ -33,11 +33,18 @@ class InMemoryStore implements MetadataStore {
     object_id: string;
     tenant_id: string | null;
   }): Promise<LayerCandidate | null> {
+    // TASK-17 · the resolver now passes the tenant_id for L1 (not
+    // null) so the real store can look up a template activation.
+    // Tests seed L1 rows at tenant_id=null (vendor-global) the same
+    // way production does, so match on null for L1 regardless of
+    // what the resolver passed.
+    const effectiveTenant =
+      params.layer === "L0" || params.layer === "L1" ? null : params.tenant_id;
     const found = this.rows.find(
       (r) =>
         r.layer === params.layer &&
         r.object_id === params.object_id &&
-        r.tenant_id === params.tenant_id,
+        r.tenant_id === effectiveTenant,
     );
     if (!found) return null;
     const { tenant_id: _t, ...rest } = found;

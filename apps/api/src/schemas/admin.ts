@@ -114,3 +114,33 @@ export const SimulateResponseSchema = z
     notes: z.array(z.string()),
   })
   .strict();
+
+// ── TASK-17 · template activation ──────────────────────────────────
+
+export const ActivateTemplateBodySchema = z
+  .object({
+    template_id: z
+      .string()
+      .min(1)
+      .max(128)
+      .regex(/^tpl\.[a-z][a-z0-9_]*$/, {
+        message: "template_id must match `tpl.<segment>`",
+      }),
+    version: z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$/, {
+        message: "version must look like semver (1.2.3 or 1.2.3-rc1)",
+      }),
+  })
+  .strict();
+
+export const ActivateTemplateResponseSchema = z
+  .object({
+    tenant_id: z.string(),
+    template_id: z.string(),
+    version: z.string(),
+    activated_at: z.string().datetime(),
+  })
+  .strict();

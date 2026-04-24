@@ -32,6 +32,7 @@ import telemetryPlugin from "./plugins/telemetry.js";
 import tenantContextPlugin from "./plugins/tenant-context.js";
 import { registerChangeSetRoutes } from "./routes/admin/changes.js";
 import { registerMetadataObjectRoutes } from "./routes/admin/metadata-objects.js";
+import { registerTemplatesRoutes } from "./routes/admin/templates.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerRuntimeEntityRoutes } from "./routes/runtime/entities.js";
 import { ChangeSetService } from "./services/change-set-service.js";
@@ -143,6 +144,7 @@ export async function buildServer(input: BuildServerInput = {}): Promise<ServerH
   });
   await registerMetadataObjectRoutes(app, { registry, service: metadataObjectService });
   await registerChangeSetRoutes(app, { registry, service: changeSetService });
+  await registerTemplatesRoutes(app, { registry, repo: metadataObjectRepo });
   await registerRuntimeEntityRoutes(app, { registry, service: runtimeEntityService });
 
   return {

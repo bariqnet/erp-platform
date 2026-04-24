@@ -52,12 +52,37 @@ export class MetadataObjectRepository extends TenantRepository implements Metada
    * MetadataStore port — fetch the currently-active candidate at a
    * specific layer for the given object id. Vendor-global L0/L1 rows
    * have tenant_id NULL; tenant-scoped L2+ rows match the GUC.
+   *
+   * TASK-17 · L1 rows are vendor-global but scoped by `template_id`.
+   * `getActiveLayers` returns L1 only when the tenant has activated
+   * a template; this method reads the activation row to know *which*
+   * template_id to filter by, then fetches the L1 row that matches.
    */
   async fetchCandidate(params: {
     layer: Layer;
     object_id: string;
     tenant_id: string | null;
   }): Promise<LayerCandidate | null> {
+    if (params.layer === "L1") {
+      // L1 rows are vendor-global (tenant_id = NULL) but scoped by
+      // `template_id`. Look up the tenant's active template first;
+      // no activation → no L1 contribution.
+      if (params.tenant_id === null) return null;
+      const templateId = await this.getActiveTemplateId(params.tenant_id);
+      if (templateId === null) return null;
+      return this.runAsVendor(async (trx) => {
+        const row = await trx
+          .selectFrom("metadata.meta_object")
+          .selectAll()
+          .where("object_id", "=", params.object_id)
+          .where("layer", "=", "L1")
+          .where("tenant_id", "is", null)
+          .where("template_id", "=", templateId)
+          .where("valid_until", "is", null)
+          .executeTakeFirst();
+        return row ? toCandidate(row) : null;
+      });
+    }
     if (VENDOR_LAYERS.has(params.layer)) {
       return this.runAsVendor(async (trx) => {
         const row = await trx
@@ -87,12 +112,72 @@ export class MetadataObjectRepository extends TenantRepository implements Metada
 
   /**
    * MetadataStore port — return the layer set active for a tenant.
-   * Phase 1 default: ["L0", "L2"] (L1 templates land in Phase 2).
-   * Tenants with explicit activation rows in `meta_layer_activation`
-   * override this default — wired up when the activation API lands.
+   *
+   * - Default: `["L0", "L2"]`.
+   * - When the tenant has an active template activation row
+   *   (TASK-17), splice `L1` between `L0` and `L2`.
+   * - Future: L3 / L4 follow the same pattern.
+   *
+   * The activation read goes through the vendor role because the
+   * resolver runs with `tenant_id` set only via the port. RLS on
+   * `meta_layer_activation` is strict-tenant — without the GUC, a
+   * tenant-role SELECT returns zero rows even for its own data.
    */
-  async getActiveLayers(_tenant: string): Promise<readonly Layer[]> {
-    return ["L0", "L2"];
+  async getActiveLayers(tenant: string): Promise<readonly Layer[]> {
+    const templateId = await this.getActiveTemplateId(tenant);
+    return templateId !== null ? ["L0", "L1", "L2"] : ["L0", "L2"];
+  }
+
+  /**
+   * Read the active L1 `source_id` for the tenant. Returns null when
+   * no template is activated. TASK-17 · used by both
+   * `fetchCandidate(L1)` and `getActiveLayers`.
+   */
+  async getActiveTemplateId(tenantId: string): Promise<string | null> {
+    return this.runAsVendor(async (trx) => {
+      const row = await trx
+        .selectFrom("metadata.meta_layer_activation")
+        .select("source_id")
+        .where("tenant_id", "=", tenantId)
+        .where("layer", "=", "L1")
+        .executeTakeFirst();
+      return row?.source_id ?? null;
+    });
+  }
+
+  /**
+   * TASK-17 · activate (or rotate) a template for a tenant. Writes
+   * the `meta_layer_activation` row. Runs under vendor privilege —
+   * activation is a platform-admin action, not a tenant-self-service
+   * op (that posture may change in a later phase).
+   */
+  async activateTemplate(input: {
+    readonly tenantId: string;
+    readonly templateId: string;
+    readonly version: string;
+    readonly activatedBy: string;
+  }): Promise<{ readonly templateId: string; readonly version: string }> {
+    return this.runAsVendor(async (trx) => {
+      await trx
+        .insertInto("metadata.meta_layer_activation")
+        .values({
+          tenant_id: input.tenantId,
+          layer: "L1",
+          source_id: input.templateId,
+          version: input.version,
+          activated_by: input.activatedBy,
+        })
+        .onConflict((c) =>
+          c.columns(["tenant_id", "layer"]).doUpdateSet({
+            source_id: input.templateId,
+            version: input.version,
+            activated_by: input.activatedBy,
+            activated_at: new Date(),
+          }),
+        )
+        .execute();
+      return { templateId: input.templateId, version: input.version };
+    });
   }
 
   /**
