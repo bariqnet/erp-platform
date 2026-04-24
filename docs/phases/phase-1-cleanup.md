@@ -54,8 +54,8 @@ auth with Better Auth (CLAUDE.md §2). Zod 4 is now in place
   - [x] ~~`apps/api/src/plugins/auth.ts` mounts Better Auth at `/api/auth/*` and resolves sessions via the Fastify node handler adapter.~~ Real sessions resolve first; dev-header fallback kept for the migration window.
   - [x] ~~Reconcile Better Auth's kysely-adapter with our shared Kysely instance.~~ `kyselyAdapter(sharedKysely, { type: "postgres" })` directly as `database` works — the library's `DBAdapterInstance` type is the function signature the adapter returns.
   - [x] ~~Better Auth's `modelName: "auth.user"` routes correctly.~~ Kysely resolves the dotted name as a schema-qualified identifier. Verified end-to-end in the integration test.
-  - [ ] **Deferred to TASK-10.1b.2**: migrate every admin + runtime integration test off dev-header auth onto `createTestSession`. 115+ tests; one PR per file. When the last file migrates, delete the dev-header fallback from `plugins/auth.ts`.
-  - [ ] **Deferred to TASK-10.1b.2**: console login form → Better Auth endpoint; `lib/session.ts` reads the BA cookie instead of the JSON dev cookie.
+  - [x] ~~**TASK-10.1b.2**: migrate every admin + runtime integration test off dev-header auth onto `createTestSession`.~~ **DONE** — all 69 apps/api integration tests migrated; dev-header fallback deleted from `plugins/auth.ts`.
+  - [x] ~~**TASK-10.1b.2**: console login form → Better Auth endpoint; `lib/session.ts` reads the BA cookie instead of the JSON dev cookie.~~ **DONE** — login form is now email + password + tenant_id, `loginAction` POSTs to `/api/auth/sign-in/email`, Playwright E2E passes end-to-end.
   - [x] ~~ADR-0002 status flips to `Superseded by ADR-NNNN`.~~ Flipped; points at ADR-0004.
 
 **Dependencies:** TASK-10.1b.1 unblocks TASK-10.1b.2 (the mechanical test migration) which in turn unblocks pilot-readiness of auth-sensitive surface area. Phase 2 tasks that don't touch auth are not blocked by 10.1b.2.
@@ -265,16 +265,16 @@ the staging bring-up.
 
 ## Summary
 
-| Task         | Title                                          | Scope  | Blocks                      |
-| ------------ | ---------------------------------------------- | ------ | --------------------------- |
-| TASK-10.1a   | Zod 3 → Zod 4 migration ✅ **done**            | 1 day  | unblocked 10.1b             |
-| TASK-10.1b   | Better Auth schema layer ✅ **partial** landed | 1 day  | tables exist, no wiring yet |
-| TASK-10.1b.1 | Better Auth wiring ✅ **done**                 | 1 day  | unblocks 10.1b.2            |
-| TASK-10.1b.2 | Test-fixture migration + console login swap    | 3 days | prod auth hardening         |
-| TASK-14.1    | Audit chain backfill ✅ **done**               | 1 day  | —                           |
-| TASK-14.2    | Console create-row UI ✅ **done**              | 1 day  | —                           |
-| TASK-14.3    | Grafana Cloud OTLP ✅ **done**                 | 1 day  | —                           |
-| TASK-14.4    | Playwright E2E ✅ **done**                     | 1 day  | —                           |
-| TASK-14.5    | Terraform + ECS deploy ✅ **code done**        | 1 day  | operator bring-up remains   |
+| Task         | Title                                          | Scope | Blocks                      |
+| ------------ | ---------------------------------------------- | ----- | --------------------------- |
+| TASK-10.1a   | Zod 3 → Zod 4 migration ✅ **done**            | 1 day | unblocked 10.1b             |
+| TASK-10.1b   | Better Auth schema layer ✅ **partial** landed | 1 day | tables exist, no wiring yet |
+| TASK-10.1b.1 | Better Auth wiring ✅ **done**                 | 1 day | unblocked 10.1b.2           |
+| TASK-10.1b.2 | Test migration + console swap ✅ **done**      | 1 day | —                           |
+| TASK-14.1    | Audit chain backfill ✅ **done**               | 1 day | —                           |
+| TASK-14.2    | Console create-row UI ✅ **done**              | 1 day | —                           |
+| TASK-14.3    | Grafana Cloud OTLP ✅ **done**                 | 1 day | —                           |
+| TASK-14.4    | Playwright E2E ✅ **done**                     | 1 day | —                           |
+| TASK-14.5    | Terraform + ECS deploy ✅ **code done**        | 1 day | operator bring-up remains   |
 
-**Remaining:** TASK-10.1b.2 (mechanical test migration + console login swap) + operator step for TASK-14.5. Everything else in Phase-1 scope is shipped. TASK-10.1b.1 landed in one focused session (ADR-0004 got the integration right first try after the cookie-signature encoding was surfaced by the integration test).
+**Remaining:** operator step for TASK-14.5 (bring up staging against a real AWS account). Everything else in Phase-1 scope is shipped. TASK-10.1b.2 landed in one session — the "115+ tests" concern turned out to be 5 files of mechanical swap; Playwright E2E validated the full console flow against real Better Auth in ~8 s.

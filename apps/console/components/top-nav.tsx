@@ -32,8 +32,6 @@ export function TopNav({ session }: { readonly session: Session | null }): JSX.E
               </Link>
               <span className="hidden sm:inline text-slate-400">·</span>
               <span className="hidden sm:inline text-slate-500">
-                {t(locale, "session_banner_prefix")}{" "}
-                <span className="font-mono text-xs text-slate-700">{session.userId}</span>{" "}
                 {t(locale, "session_banner_as")}{" "}
                 <span className="font-mono text-xs text-slate-700">{session.tenantId}</span>
               </span>

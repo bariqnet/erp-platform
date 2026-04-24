@@ -1,57 +1,59 @@
-// Session helpers for the console. The dev auth layer is placeholder —
-// CLAUDE.md §2 pins Better Auth but ADR-0002 defers the migration.
-// Until TASK-10.1 lands, the console carries the three dev headers
-// in a signed cookie the server can read from Server Components.
+// Session helpers for the console — Better Auth cookie reader
+// (TASK-10.1b.2).
 //
-// The cookie format is a JSON payload, not a JWT — no secret to
-// leak in dev. Production needs a real session; this file is one of
-// the sites that changes when Better Auth lands.
+// The placeholder JSON dev cookie was removed. What lives in the jar
+// now is a standard Better Auth signed cookie named
+// `erp.session_token` (see packages/auth/src/create-auth.ts).
+//
+// Design:
+//   - The console never validates the cookie itself. It's a bearer
+//     token — apps/api's auth plugin resolves it via @erp/auth's
+//     resolveSession on every admin+runtime call. So the console's
+//     `readSession()` is a synchronous "is there a cookie + a known
+//     tenant choice" check for layout rendering + redirect gating;
+//     the apps/api side owns the truth.
+//   - Tenant choice is kept in a separate cookie `erp.tenant` (HTTP-
+//     only, same TTL as the session). A user with multiple tenants
+//     can switch by hitting the tenant picker; a user with one
+//     tenant never sees the switcher.
+//   - Locale stays its own cookie (`erp.locale`) — it's rendered by
+//     the root layout before any auth call.
 
 import { cookies } from "next/headers";
 
+const SESSION_COOKIE = "erp.session_token";
+const TENANT_COOKIE = "erp.tenant";
+const LOCALE_COOKIE = "erp.locale";
+
+export type Locale = "en" | "ar";
+
 export interface Session {
+  /** Present when the Better Auth cookie is set. Layout + route
+   *  gates check this first before making any Admin-API call. */
+  readonly hasSessionCookie: true;
+  /** The tenant the user last chose. Empty = ask the picker. */
   readonly tenantId: string;
-  readonly userId: string;
-  readonly userRoles: readonly string[];
-  readonly locale: "en" | "ar";
+  /** User-chosen locale. Default en. */
+  readonly locale: Locale;
 }
 
-const COOKIE_NAME = "erp_dev_session";
-
-/** Read the session from the request's cookie jar. Null = not logged in. */
 export function readSession(): Session | null {
-  const raw = cookies().get(COOKIE_NAME)?.value;
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<Session>;
-    if (
-      typeof parsed.tenantId !== "string" ||
-      typeof parsed.userId !== "string" ||
-      !Array.isArray(parsed.userRoles) ||
-      (parsed.locale !== "en" && parsed.locale !== "ar")
-    ) {
-      return null;
-    }
-    return {
-      tenantId: parsed.tenantId,
-      userId: parsed.userId,
-      userRoles: parsed.userRoles.filter((r): r is string => typeof r === "string"),
-      locale: parsed.locale,
-    };
-  } catch {
-    return null;
-  }
+  const jar = cookies();
+  const cookie = jar.get(SESSION_COOKIE);
+  if (!cookie || cookie.value === "") return null;
+  const tenant = jar.get(TENANT_COOKIE)?.value ?? "";
+  const locale = (jar.get(LOCALE_COOKIE)?.value ?? "en") as Locale;
+  return {
+    hasSessionCookie: true,
+    tenantId: tenant,
+    locale: locale === "ar" ? "ar" : "en",
+  };
 }
 
-export function writeSessionCookie(session: Session): void {
-  // cookies() in a Server Action or Route Handler returns a jar that
-  // exposes .set() / .delete(). Next.js's types at the top level are
-  // narrowed to ReadonlyRequestCookies, but the mutation methods are
-  // part of the same object — we call them via the one-argument shape
-  // the types accept.
+export function writeTenantCookie(tenantId: string): void {
   cookies().set({
-    name: COOKIE_NAME,
-    value: JSON.stringify(session),
+    name: TENANT_COOKIE,
+    value: tenantId,
     httpOnly: false,
     sameSite: "lax",
     path: "/",
@@ -59,18 +61,38 @@ export function writeSessionCookie(session: Session): void {
   });
 }
 
-export function clearSessionCookie(): void {
-  cookies().delete(COOKIE_NAME);
+export function writeLocaleCookie(locale: Locale): void {
+  cookies().set({
+    name: LOCALE_COOKIE,
+    value: locale,
+    httpOnly: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+}
+
+export function clearAuthCookies(): void {
+  cookies().delete(SESSION_COOKIE);
+  cookies().delete(TENANT_COOKIE);
 }
 
 /**
- * HTTP headers to attach to every Admin/Runtime API request. Matches
- * the placeholder auth plugin in apps/api.
+ * Forward the Better Auth session cookie to the API along with the
+ * chosen tenant. The API's auth plugin does the real resolution via
+ * resolveSession → resolveTenantContext.
  */
 export function authHeaders(session: Session): Record<string, string> {
-  return {
-    "x-tenant-id": session.tenantId,
-    "x-user-id": session.userId,
-    "x-user-roles": session.userRoles.join(", "),
+  // Read the cookie value again here because readSession() returns
+  // only the presence bit. The actual signed value needs to reach
+  // the API verbatim.
+  const jar = cookies();
+  const sessionCookie = jar.get(SESSION_COOKIE)?.value ?? "";
+  const headers: Record<string, string> = {
+    cookie: `${SESSION_COOKIE}=${sessionCookie}`,
   };
+  if (session.tenantId !== "") {
+    headers["x-tenant-id"] = session.tenantId;
+  }
+  return headers;
 }

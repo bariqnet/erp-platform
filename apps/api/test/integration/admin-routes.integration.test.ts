@@ -2,13 +2,13 @@
 //
 // Spins up Postgres + applies migrations + builds the server. Each
 // scenario walks the role-gated routes via fastify.inject() — no
-// real network. Auth uses the dev-mode `x-user-id` / `x-user-roles`
-// headers (Better Auth integration is deferred — needs Zod 4 ADR;
-// see CHANGELOG TASK-10 entry).
+// real network. Auth uses real Better Auth sessions via
+// createTestSession (ADR-0004; TASK-10.1b.2 migration).
 
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { createAuth } from "@erp/auth";
 import { createMigrator, type Database } from "@erp/db";
 import { createLogger } from "@erp/telemetry";
 import { Kysely, PostgresDialect, sql } from "kysely";
@@ -18,31 +18,22 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { buildServer, type ServerHandle } from "../../src/server.js";
 
+import { makeSession, sessionHeaders } from "./_fixtures/session-helpers.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const MIGRATIONS_DIR = resolve(__filename, "../../../../../infra/migrations");
 
 const TENANT = "t_alpha";
 
-const PROPOSER_HEADERS = {
-  "x-tenant-id": TENANT,
-  "x-user-id": "u_proposer",
-  "x-user-roles": "metadata.write",
-};
-const APPROVER_HEADERS = {
-  "x-tenant-id": TENANT,
-  "x-user-id": "u_approver",
-  "x-user-roles": "metadata.approve",
-};
-const DEPLOYER_HEADERS = {
-  "x-tenant-id": TENANT,
-  "x-user-id": "u_deployer",
-  "x-user-roles": "metadata.deploy",
-};
-const READER_HEADERS = {
-  "x-tenant-id": TENANT,
-  "x-user-id": "u_reader",
-  "x-user-roles": "",
-};
+type Headers = { cookie: string; "x-tenant-id": string };
+
+// Per-test session fixtures. Populated in beforeEach() after the
+// server is up. Shape stays the same as the old header constants so
+// the inject() call sites don't have to change.
+let PROPOSER_HEADERS: Headers;
+let APPROVER_HEADERS: Headers;
+let DEPLOYER_HEADERS: Headers;
+let READER_HEADERS: Headers;
 
 let container: StartedTestContainer;
 let db: Kysely<Database>;
@@ -92,6 +83,43 @@ beforeEach(async () => {
     logger: createLogger({ service: "erp-api-test", level: "fatal", pretty: false }),
     authRequired: true,
   });
+
+  // Real Better Auth sessions replace the old dev-header constants
+  // (ADR-0004). Fresh sessions per test so auth.session rows don't
+  // leak across scenarios.
+  const auth = createAuth({ db, isProduction: false });
+  PROPOSER_HEADERS = sessionHeaders(
+    await makeSession(db, auth, {
+      tenantId: TENANT,
+      userId: "u_proposer",
+      email: "proposer@erp.local",
+      roles: ["metadata.write"],
+    }),
+  );
+  APPROVER_HEADERS = sessionHeaders(
+    await makeSession(db, auth, {
+      tenantId: TENANT,
+      userId: "u_approver",
+      email: "approver@erp.local",
+      roles: ["metadata.approve"],
+    }),
+  );
+  DEPLOYER_HEADERS = sessionHeaders(
+    await makeSession(db, auth, {
+      tenantId: TENANT,
+      userId: "u_deployer",
+      email: "deployer@erp.local",
+      roles: ["metadata.deploy"],
+    }),
+  );
+  READER_HEADERS = sessionHeaders(
+    await makeSession(db, auth, {
+      tenantId: TENANT,
+      userId: "u_reader",
+      email: "reader@erp.local",
+      roles: [],
+    }),
+  );
 });
 
 // ── Read-side routes ────────────────────────────────────────────────
@@ -111,10 +139,13 @@ describe("GET /admin/v1/metadata/objects", () => {
   });
 
   it("requires x-tenant-id", async () => {
+    // Reader session present — but no x-tenant-id header. Under
+    // Better Auth the plugin populates userId and falls through to
+    // tenant-context which then 400s with missing_tenant.
     const res = await handle.app.inject({
       method: "GET",
       url: "/admin/v1/metadata/objects",
-      headers: { "x-user-id": "u", "x-user-roles": "" },
+      headers: { cookie: READER_HEADERS.cookie },
     });
     expect(res.statusCode).toBe(400);
     expect(res.json()).toMatchObject({ kind: "missing_tenant" });

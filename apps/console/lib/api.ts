@@ -1,11 +1,12 @@
 // Thin fetch wrappers for the Admin + Runtime APIs. Server-side only;
-// the console never calls the APIs from the browser (auth headers
-// would leak into the network tab and the CORS dance isn't worth it
-// until Better Auth ships).
+// the console never calls the APIs from the browser (the session
+// cookie is HTTP-only and would need a proxy either way — proxying
+// through Server Actions keeps the CORS + CSRF story one-sided).
 //
-// All functions take a Session and attach the three dev headers.
-// Errors from the API (4xx/5xx problem+json) are surfaced as thrown
-// ApiError so callers can match on `.status` in Server Components.
+// Every helper takes the `Session` from lib/session.ts; we forward
+// the Better Auth cookie + x-tenant-id via authHeaders(). The API
+// side's auth plugin resolves the cookie → user, joins user_tenant
+// for the requested tenant, and populates appContext.{userId, userRoles}.
 
 import { authHeaders, type Session } from "./session";
 

@@ -15,6 +15,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { createAuth } from "@erp/auth";
 import { createMigrator, type Database } from "@erp/db";
 import { createLogger } from "@erp/telemetry";
 import { Kysely, PostgresDialect, sql } from "kysely";
@@ -24,6 +25,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { runSeed } from "../../../../scripts/seed.js";
 import { buildServer, type ServerHandle } from "../../src/server.js";
+
+import { makeSession, sessionHeaders } from "./_fixtures/session-helpers.js";
 // Repo-root relative — scripts/seed.ts lives outside apps/api.
 // eslint-disable-next-line import/no-relative-parent-imports
 
@@ -95,7 +98,7 @@ const silentLogger = {
 // ── First-pass population ──────────────────────────────────────────
 
 describe("runSeed — first pass populates the reference tenant", () => {
-  it("inserts 5 vendor objects + 1 tenant object + 50 rows × 3 entities", async () => {
+  it("inserts 5 vendor objects + 1 tenant object + 50 rows × 3 entities + demo user", async () => {
     const stats = await runSeed(db, silentLogger);
     expect(stats).toEqual({
       vendorObjectsInserted: 5,
@@ -105,6 +108,7 @@ describe("runSeed — first pass populates the reference tenant", () => {
       customersInserted: 50,
       productsInserted: 50,
       invoicesInserted: 50,
+      demoUserCreated: true,
     });
 
     const meta = await db
@@ -153,6 +157,8 @@ describe("runSeed — second pass is a no-op", () => {
       customersInserted: 0,
       productsInserted: 0,
       invoicesInserted: 0,
+      // Phase 4 — the demo user already exists on a second pass.
+      demoUserCreated: false,
     });
 
     // Row counts unchanged.
@@ -223,11 +229,19 @@ describe("runSeed — second pass is a no-op", () => {
 // ── End-to-end through the Runtime API ─────────────────────────────
 
 describe("Runtime API serves the seeded metadata + rows", () => {
-  const ADMIN_HEADERS = {
-    "x-tenant-id": TENANT,
-    "x-user-id": "u_admin",
-    "x-user-roles": "prm.admin",
-  };
+  let ADMIN_HEADERS: { cookie: string; "x-tenant-id": string };
+
+  beforeEach(async () => {
+    const auth = createAuth({ db, isProduction: false });
+    ADMIN_HEADERS = sessionHeaders(
+      await makeSession(db, auth, {
+        tenantId: TENANT,
+        userId: "u_admin",
+        email: "admin@erp.local",
+        roles: ["prm.admin"],
+      }),
+    );
+  });
 
   it("GET /v1/ent.customer returns the first 50 seeded rows, loyalty_tier included", async () => {
     await runSeed(db, silentLogger);
@@ -314,11 +328,15 @@ describe("Runtime API serves the seeded metadata + rows", () => {
 
   it("prm.viewer can read but not create", async () => {
     await runSeed(db, silentLogger);
-    const viewerHeaders = {
-      "x-tenant-id": TENANT,
-      "x-user-id": "u_viewer",
-      "x-user-roles": "prm.viewer",
-    };
+    const auth = createAuth({ db, isProduction: false });
+    const viewerHeaders = sessionHeaders(
+      await makeSession(db, auth, {
+        tenantId: TENANT,
+        userId: "u_viewer",
+        email: "viewer@erp.local",
+        roles: ["prm.viewer"],
+      }),
+    );
     const read = await handle.app.inject({
       method: "GET",
       url: "/v1/ent.customer",

@@ -9,13 +9,11 @@
 //      user + tenant-context. Populates request.appContext with
 //      userId + userRoles.
 //
-// Transition behavior (ADR-0004 §Phasing):
-//   - Real BA session if one resolves.
-//   - Dev-header fallback (x-user-id + x-user-roles) when no session
-//     is present AND NODE_ENV !== "production". Fires a deprecation
-//     warning on every hit so tests can migrate off it incrementally
-//     without blocking. Removed when the last integration test
-//     switches to createTestSession().
+// TASK-10.1b.2 — the dev-header fallback that let integration tests
+// use x-user-id / x-user-roles headers during the migration window
+// was removed when the last test file migrated to
+// `createTestSession()`. If a caller now arrives without a valid
+// Better Auth session and `required` is true, it's 401.
 //
 // The plugin depends on `erp-telemetry` (for request.appContext.logger)
 // and runs BEFORE `erp-tenant-context` so tenant-context can validate
@@ -41,14 +39,11 @@ export interface AuthPluginOptions {
   readonly publicRoutes?: readonly string[];
   /** When true, refuse requests without a session. Defaults to NODE_ENV==='production'. */
   readonly required?: boolean;
-  /** When true, accept the legacy x-user-id / x-user-roles headers (dev/test only). */
-  readonly allowDevHeaders?: boolean;
 }
 
 const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (app, opts) => {
   const required = opts.required ?? process.env.NODE_ENV === "production";
   const isProduction = process.env.NODE_ENV === "production";
-  const allowDevHeaders = opts.allowDevHeaders ?? !isProduction;
   const publicRoutes = new Set(opts.publicRoutes ?? DEFAULT_PUBLIC);
 
   const auth =
@@ -152,35 +147,8 @@ const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (app, opts) => {
       return;
     }
 
-    // 2. Dev-header fallback (intentionally scoped; ADR-0004 §Phasing).
-    if (allowDevHeaders) {
-      const userId = stringHeader(request, "x-user-id");
-      const rolesHeader = stringHeader(request, "x-user-roles");
-      if (userId !== "") {
-        request.appContext.logger.warn(
-          {
-            user_id: userId,
-            msg: "auth: dev-header fallback — migrate this test to createTestSession() (ADR-0004)",
-          },
-          "auth: dev-header fallback",
-        );
-        const userRoles =
-          rolesHeader === ""
-            ? []
-            : rolesHeader
-                .split(",")
-                .map((r) => r.trim())
-                .filter(Boolean);
-        request.appContext = {
-          ...request.appContext,
-          userId,
-          userRoles,
-        };
-        return;
-      }
-    }
-
-    // 3. No session, no fallback — 401 if required.
+    // 2. No session — 401 when required (the dev-header fallback
+    // was removed in TASK-10.1b.2).
     if (required) {
       return reject(reply, 401, "unauthenticated", "Authentication required.");
     }

@@ -22,13 +22,14 @@
 // expected failures.
 
 import { Result, type GrantAction, type MetadataStore, type Result as ResultT } from "@erp/core";
-import { withTenantContext, type Database } from "@erp/db";
+import { withTenantContext } from "@erp/db";
 import { materialize } from "@erp/kernel-runtime";
 import { resolve as resolveMetadata } from "@erp/metadata";
 
 import type { Denied, PermissionGate } from "./permission-gate.js";
 import type {
   AuditRepository,
+  Database,
   EntityRow,
   EntityRowRepository,
   ListEntityRowsParams,

@@ -9,11 +9,12 @@
 //   • errors come back as RFC 7807 problem+json
 //   • x-request-id round-trips
 //   • tenant-context plugin requires x-tenant-id on non-public routes
-//   • auth plugin requires x-user-id when `authRequired: true`
+//   • auth plugin requires a session when `authRequired: true`
 
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { createAuth } from "@erp/auth";
 import { createMigrator, type Database } from "@erp/db";
 import { createLogger } from "@erp/telemetry";
 import { Kysely, PostgresDialect, sql } from "kysely";
@@ -22,6 +23,8 @@ import { GenericContainer, Wait, type StartedTestContainer } from "testcontainer
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { buildServer, type ServerHandle } from "../../src/server.js";
+
+import { makeSession, sessionHeaders } from "./_fixtures/session-helpers.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const MIGRATIONS_DIR = resolve(__filename, "../../../../../infra/migrations");
@@ -260,7 +263,7 @@ describe("tenant-context", () => {
 // ── auth ────────────────────────────────────────────────────────────
 
 describe("auth plugin", () => {
-  it("when required, refuses requests without x-user-id", async () => {
+  it("when required, refuses requests without a session cookie", async () => {
     const handle = await makeServer({ authRequired: true });
     try {
       handle.app.get("/v1/_probe2", async (req, reply) =>
@@ -279,7 +282,10 @@ describe("auth plugin", () => {
     }
   });
 
-  it("populates user id and roles from headers", async () => {
+  it("populates user id and roles from a Better Auth session", async () => {
+    // Rebuild schema so this test's inserts don't collide with others
+    // that ran earlier in the suite.
+    await freshDb();
     const handle = await makeServer({ authRequired: true });
     try {
       handle.app.get("/v1/_probe3", async (req, reply) =>
@@ -288,14 +294,19 @@ describe("auth plugin", () => {
           roles: req.appContext.userRoles,
         }),
       );
+
+      const auth = createAuth({ db, isProduction: false });
+      const session = await makeSession(db, auth, {
+        tenantId: "t_alpha",
+        userId: "u_42",
+        email: "u42@erp.local",
+        roles: ["metadata.write", "metadata.approve"],
+      });
+
       const res = await handle.app.inject({
         method: "GET",
         url: "/v1/_probe3",
-        headers: {
-          "x-tenant-id": "t_alpha",
-          "x-user-id": "u_42",
-          "x-user-roles": "metadata.write, metadata.approve",
-        },
+        headers: sessionHeaders(session),
       });
       expect(res.statusCode).toBe(200);
       expect(res.json()).toEqual({

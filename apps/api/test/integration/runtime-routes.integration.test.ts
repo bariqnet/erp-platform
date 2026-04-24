@@ -13,6 +13,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { createAuth } from "@erp/auth";
 import { createMigrator, type Database } from "@erp/db";
 import { createLogger } from "@erp/telemetry";
 import { Kysely, PostgresDialect, sql } from "kysely";
@@ -22,41 +23,26 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { buildServer, type ServerHandle } from "../../src/server.js";
 
+import { makeSession, sessionHeaders } from "./_fixtures/session-helpers.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const MIGRATIONS_DIR = resolve(__filename, "../../../../../infra/migrations");
 
 const TENANT = "t_alpha";
 const ENTITY = "ent.customer";
 
-// Headers:
+type Headers = { cookie: string; "x-tenant-id": string };
+
+// Per-test session fixtures (ADR-0004, TASK-10.1b.2). Populated in
+// beforeEach() after freshDb + buildServer so the auth schema exists.
 //   · ADMIN_HEADERS grant every action via the seeded `prm.admin`.
-//   · READER_HEADERS have a role that does not match any permission.
-//   · PROPOSER/APPROVER/DEPLOYER push metadata through the state machine.
-const ADMIN_HEADERS = {
-  "x-tenant-id": TENANT,
-  "x-user-id": "u_admin",
-  "x-user-roles": "prm.admin",
-};
-const READER_HEADERS = {
-  "x-tenant-id": TENANT,
-  "x-user-id": "u_reader",
-  "x-user-roles": "prm.unknown_role",
-};
-const PROPOSER_HEADERS = {
-  "x-tenant-id": TENANT,
-  "x-user-id": "u_proposer",
-  "x-user-roles": "metadata.write",
-};
-const APPROVER_HEADERS = {
-  "x-tenant-id": TENANT,
-  "x-user-id": "u_approver",
-  "x-user-roles": "metadata.approve",
-};
-const DEPLOYER_HEADERS = {
-  "x-tenant-id": TENANT,
-  "x-user-id": "u_deployer",
-  "x-user-roles": "metadata.deploy",
-};
+//   · READER_HEADERS carry a role that matches no seeded permission.
+//   · PROPOSER/APPROVER/DEPLOYER drive the change-set state machine.
+let ADMIN_HEADERS: Headers;
+let READER_HEADERS: Headers;
+let PROPOSER_HEADERS: Headers;
+let APPROVER_HEADERS: Headers;
+let DEPLOYER_HEADERS: Headers;
 
 let container: StartedTestContainer;
 let db: Kysely<Database>;
@@ -177,6 +163,49 @@ beforeEach(async () => {
     logger: createLogger({ service: "erp-api-test", level: "fatal", pretty: false }),
     authRequired: true,
   });
+
+  // Real Better Auth sessions per test (ADR-0004).
+  const auth = createAuth({ db, isProduction: false });
+  ADMIN_HEADERS = sessionHeaders(
+    await makeSession(db, auth, {
+      tenantId: TENANT,
+      userId: "u_admin",
+      email: "admin@erp.local",
+      roles: ["prm.admin"],
+    }),
+  );
+  READER_HEADERS = sessionHeaders(
+    await makeSession(db, auth, {
+      tenantId: TENANT,
+      userId: "u_reader",
+      email: "reader@erp.local",
+      roles: ["prm.unknown_role"],
+    }),
+  );
+  PROPOSER_HEADERS = sessionHeaders(
+    await makeSession(db, auth, {
+      tenantId: TENANT,
+      userId: "u_proposer",
+      email: "proposer@erp.local",
+      roles: ["metadata.write"],
+    }),
+  );
+  APPROVER_HEADERS = sessionHeaders(
+    await makeSession(db, auth, {
+      tenantId: TENANT,
+      userId: "u_approver",
+      email: "approver@erp.local",
+      roles: ["metadata.approve"],
+    }),
+  );
+  DEPLOYER_HEADERS = sessionHeaders(
+    await makeSession(db, auth, {
+      tenantId: TENANT,
+      userId: "u_deployer",
+      email: "deployer@erp.local",
+      roles: ["metadata.deploy"],
+    }),
+  );
 });
 
 // ── CRUD contract ───────────────────────────────────────────────────
@@ -277,11 +306,15 @@ describe("POST /v1/:entity", () => {
       ])
       .execute();
 
-    const headers = {
-      "x-tenant-id": TENANT,
-      "x-user-id": "u_super",
-      "x-user-roles": "prm.superadmin",
-    };
+    const auth = createAuth({ db, isProduction: false });
+    const headers = sessionHeaders(
+      await makeSession(db, auth, {
+        tenantId: TENANT,
+        userId: "u_super",
+        email: "super@erp.local",
+        roles: ["prm.superadmin"],
+      }),
+    );
     const res = await handle.app.inject({
       method: "POST",
       url: "/v1/ent.ghost",
@@ -562,11 +595,15 @@ describe("Permission Gate (RFC §13.1)", () => {
       ])
       .execute();
 
-    const readerHeaders = {
-      "x-tenant-id": TENANT,
-      "x-user-id": "u_r",
-      "x-user-roles": "prm.reader",
-    };
+    const auth = createAuth({ db, isProduction: false });
+    const readerHeaders = sessionHeaders(
+      await makeSession(db, auth, {
+        tenantId: TENANT,
+        userId: "u_r",
+        email: "reader-read-only@erp.local",
+        roles: ["prm.reader"],
+      }),
+    );
     const list = await handle.app.inject({
       method: "GET",
       url: `/v1/${ENTITY}`,

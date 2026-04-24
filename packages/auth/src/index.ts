@@ -16,3 +16,5 @@ export {
 } from "./test-session.js";
 
 export { DEV_SECRET, type AuthConfig } from "./config.js";
+
+export { seedUser, type SeedUserInput, type SeedUserResult } from "./seed-user.js";

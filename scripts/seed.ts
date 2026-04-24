@@ -27,6 +27,7 @@
  *                                   idempotent via deterministic ids)
  */
 
+import { createAuth, seedUser } from "@erp/auth";
 import { createDatabase, type Database } from "@erp/db";
 import { createLogger } from "@erp/telemetry";
 import { sql, type Kysely } from "kysely";
@@ -63,7 +64,16 @@ interface SeedStats {
   readonly customersInserted: number;
   readonly productsInserted: number;
   readonly invoicesInserted: number;
+  readonly demoUserCreated: boolean;
 }
+
+export const DEMO_USER = {
+  email: "demo@erp.local",
+  password: "erp-demo-pass-2026!",
+  name: "Demo User",
+  tenantId: "t_demo_retail",
+  roles: ["prm.admin"] as readonly string[],
+} as const;
 
 // ── Entrypoint ─────────────────────────────────────────────────────
 // Top-level reads DATABASE_URL lazily inside main() so this module can
@@ -107,6 +117,7 @@ export async function runSeed(
   const vendor = await seedVendorMetadata(db, logger);
   const tenant = await seedTenantMetadata(db, logger);
   const rows = await seedRows(db, logger);
+  const demo = await seedDemoUser(db, logger);
 
   return {
     vendorObjectsInserted: vendor.inserted,
@@ -116,7 +127,43 @@ export async function runSeed(
     customersInserted: rows.customers,
     productsInserted: rows.products,
     invoicesInserted: rows.invoices,
+    demoUserCreated: demo.created,
   };
+}
+
+// ── Phase 4 · demo Better Auth user ────────────────────────────────
+// Provisions a demo user the console login form (TASK-10.1b.2)
+// accepts. The user joins t_demo_retail with prm.admin so it
+// immediately has grants on all seeded entities. Idempotent — a
+// second `pnpm db:seed` returns `created: false` and leaves the
+// existing password untouched.
+
+async function seedDemoUser(
+  db: Kysely<Database>,
+  logger: Pick<ReturnType<typeof createLogger>, "info" | "warn">,
+): Promise<{ created: boolean }> {
+  const auth = createAuth({ db, isProduction: false });
+  const result = await seedUser({
+    auth,
+    db,
+    email: DEMO_USER.email,
+    password: DEMO_USER.password,
+    name: DEMO_USER.name,
+    tenantId: DEMO_USER.tenantId,
+    roles: DEMO_USER.roles,
+  });
+  logger.info(
+    {
+      email: DEMO_USER.email,
+      tenant: DEMO_USER.tenantId,
+      user_id: result.userId,
+      created: result.created,
+    },
+    result.created
+      ? "db-seed: demo user provisioned"
+      : "db-seed: demo user already exists — skipping",
+  );
+  return { created: result.created };
 }
 
 // ── Phase 1 · vendor metadata (L0) ─────────────────────────────────

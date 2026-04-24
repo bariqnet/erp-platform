@@ -100,6 +100,11 @@ export default defineConfig({
     env: {
       API_URL,
       NODE_ENV: "development",
+      // The Server Action forwards Better Auth sign-in as a Node
+      // fetch. Set Origin explicitly so Better Auth's CSRF check
+      // (trustedOrigins) allows the call. Matches the Next dev
+      // port below.
+      CONSOLE_URL,
     },
   },
 });

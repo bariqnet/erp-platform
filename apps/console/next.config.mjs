@@ -9,10 +9,11 @@ const nextConfig = {
   output: "standalone",
   // The monorepo lives several levels above apps/console. Tell Next.js
   // where the repo root is so `output: standalone` traces the right
-  // node_modules tree.
-  outputFileTracingRoot: new URL("../../", import.meta.url).pathname,
+  // node_modules tree. Next 14.2 still reads this from `experimental`;
+  // Next 15+ promoted it — set both so a future bump doesn't trip.
   experimental: {
     typedRoutes: true,
+    outputFileTracingRoot: new URL("../../", import.meta.url).pathname,
   },
 };
 

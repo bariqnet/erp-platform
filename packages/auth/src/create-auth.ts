@@ -60,6 +60,13 @@ export interface CreateAuthInput {
    */
   readonly isProduction?: boolean;
   /**
+   * Origins Better Auth accepts sign-in / sign-up calls from. The
+   * console (port 3002 or 3003) proxies POSTs through a Server
+   * Action; the Node fetch sends no Origin header, but the CSRF
+   * check still enforces the Host against this allow-list.
+   */
+  readonly trustedOrigins?: readonly string[];
+  /**
    * Optional logger callback — the Fastify plugin passes its
    * pino.child so auth logs carry the request_id.
    */
@@ -97,9 +104,22 @@ export function createAuth(input: CreateAuthInput) {
     isProduction,
   };
 
+  // Default trusted origins: baseURL + common local console ports.
+  // Prod overrides via BETTER_AUTH_TRUSTED_ORIGINS (comma-separated)
+  // or the input.trustedOrigins option.
+  const defaultOrigins = [baseURL, "http://localhost:3002", "http://localhost:3003"];
+  const envOrigins = (process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const trustedOrigins = [
+    ...new Set([...defaultOrigins, ...envOrigins, ...(input.trustedOrigins ?? [])]),
+  ];
+
   return betterAuth({
     secret: config.secret,
     baseURL: config.baseURL,
+    trustedOrigins,
 
     // Shared Kysely via the adapter. The adapter function takes
     // options and returns a DBAdapter; betterAuth accepts that shape
