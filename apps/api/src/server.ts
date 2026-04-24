@@ -15,6 +15,7 @@ import {
   createDatabase,
   type Database,
 } from "@erp/db";
+import { OutboxBus } from "@erp/events";
 import { MaterializedEntityCache } from "@erp/kernel-runtime";
 import { createLogger, type Logger } from "@erp/telemetry";
 import { fastify, type FastifyInstance } from "fastify";
@@ -119,6 +120,10 @@ export async function buildServer(input: BuildServerInput = {}): Promise<ServerH
   const permissionGate = new PermissionGate(metadataObjectRepo, (tenantId) =>
     metadataObjectRepo.listActiveObjectIds(tenantId, "Permission"),
   );
+  // Runtime events (TASK-15) — lifecycle-action transitions emit
+  // `runtime.<entity_id>.<action>` into the outbox. apps/worker's
+  // OutboxPump drains these; consumers subscribe via the bus.
+  const outboxBus = new OutboxBus(db);
   const runtimeEntityService = new RuntimeEntityService(
     metadataObjectRepo,
     entityRowRepo,
@@ -127,6 +132,7 @@ export async function buildServer(input: BuildServerInput = {}): Promise<ServerH
     permissionGate,
     materializedCache,
     db,
+    outboxBus,
   );
 
   await registerHealthRoutes(app, {

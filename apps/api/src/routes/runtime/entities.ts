@@ -28,6 +28,7 @@ import { parseBody, parseParams, parseQuery } from "../../plugins/zod-validation
 import { ProblemSchema, buildProblem } from "../../schemas/error.js";
 import {
   DeleteResponseSchema,
+  EntityActionParamsSchema,
   EntityParamsSchema,
   EntityRowBodySchema,
   EntityRowListResponseSchema,
@@ -258,6 +259,50 @@ export async function registerRuntimeEntityRoutes(
     });
   });
 
+  // TASK-15 · POST /v1/:entity/:id/actions/:action — named transition.
+  wiring.registry.registerPath({
+    method: "post",
+    path: "/v1/{entity}/{id}/actions/{action}",
+    tags: ["Runtime"],
+    description:
+      "Invoke a named lifecycle action. The entity's metadata lists the legal transitions; the action must be legal from the row's current state (otherwise 409 invalid_transition / 404 unknown_action).",
+    request: {
+      params: EntityActionParamsSchema,
+    },
+    responses: {
+      200: {
+        description: "Transition applied; response is the updated row.",
+        content: { "application/json": { schema: EntityRowResponseSchema } },
+      },
+      403: {
+        description: "Forbidden.",
+        content: { "application/problem+json": { schema: ProblemSchema } },
+      },
+      404: {
+        description: "Entity / row / action not found.",
+        content: { "application/problem+json": { schema: ProblemSchema } },
+      },
+    },
+  });
+
+  app.post("/v1/:entity/:id/actions/:action", { schema: {} }, async (request, reply) => {
+    const params = parseParams(request, EntityActionParamsSchema);
+    const r = await wiring.service.invokeAction({
+      tenantId: request.appContext.tenantId,
+      userId: request.appContext.userId,
+      userRoles: request.appContext.userRoles,
+      requestId: request.appContext.requestId,
+      traceId: request.appContext.traceId,
+      entityId: params.entity,
+      rowId: params.id,
+      action: params.action,
+    });
+    return Result.match(r, {
+      ok: (row) => reply.code(200).send(EntityRowResponseSchema.parse(toResponse(row))),
+      err: (e) => problem(reply, e),
+    });
+  });
+
   app.delete("/v1/:entity/:id", { schema: {} }, async (request, reply) => {
     const params = parseParams(request, EntityRowParamsSchema);
     const r = await wiring.service.delete({
@@ -336,6 +381,29 @@ function problem(reply: FastifyReply, err: RuntimeError): FastifyReply {
             status: 404,
             kind: "row_not_found",
             detail: `No row with id '${err.row_id}' on '${err.entity_id}'.`,
+          }),
+        );
+    case "invalid_transition":
+      return reply
+        .code(409)
+        .header("content-type", "application/problem+json")
+        .send(
+          buildProblem({
+            status: 409,
+            kind: "invalid_transition",
+            title: "Conflict",
+            detail: `No declared transition from '${err.from}' to '${err.to}' on '${err.entity_id}'.`,
+          }),
+        );
+    case "unknown_action":
+      return reply
+        .code(404)
+        .header("content-type", "application/problem+json")
+        .send(
+          buildProblem({
+            status: 404,
+            kind: "unknown_action",
+            detail: `Action '${err.action}' is not declared (or not legal from state '${err.current_state ?? "(none)"}') on '${err.entity_id}'.`,
           }),
         );
   }

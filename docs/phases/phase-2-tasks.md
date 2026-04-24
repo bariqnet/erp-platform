@@ -15,7 +15,7 @@ work is explicitly noted.
 
 ---
 
-## TASK-15 — Lifecycle state guards (baby workflow)
+## TASK-15 — Lifecycle state guards (baby workflow) ✅ DONE
 
 **Goal:** enforce entity `lifecycle.states` transitions at the Runtime
 API. Today the `status` column is a plain string any PATCH can set;
@@ -25,23 +25,22 @@ this task checks that transitions are legal before writing.
 
 **Done when:**
 
-- [ ] `EntityBody.lifecycle` gains an optional
+- [x] ~~`EntityBody.lifecycle` gains an optional
       `transitions: Array<{from: string; to: string; action?: string}>`
-      in `@erp/core` with a round-trip test.
-- [ ] `RuntimeEntityService.patch` rejects a `status` change not in
-      the transition table with `{kind: "invalid_transition"}` → 409.
-- [ ] A dedicated `POST /v1/:entity/:id/actions/:action` endpoint that
+      in `@erp/core` with a round-trip test.~~ Plus `findLifecycleTransition` + `allowedTransitionsFrom` helpers so the service + console's Actions UI share the same lookup logic.
+- [x] ~~`RuntimeEntityService.patch` rejects a `status` change not in
+      the transition table with `{kind: "invalid_transition"}` → 409.~~ Status is split out of the body before the materialized field validator runs (status is a row column, not a Field).
+- [x] ~~A dedicated `POST /v1/:entity/:id/actions/:action` endpoint that
       looks up the transition by action name, applies it, and emits a
-      `runtime.<entity_id>.<action>` event via `OutboxBus.publishWithin`.
-- [ ] Integration tests: valid transition succeeds, invalid returns
-      409, action endpoint works, event lands on the outbox.
-- [ ] Console: the entity form exposes "Actions" buttons for every
-      declared transition from the current state.
+      `runtime.<entity_id>.<action>` event via `OutboxBus.publishWithin`.~~ 404 `unknown_action` when the action isn't declared or isn't legal from the current state. Action param gated by `[a-z][a-z0-9_]*` regex at the route layer.
+- [x] ~~Integration tests: valid transition succeeds, invalid returns
+      409, action endpoint works, event lands on the outbox.~~ 11 tests in `apps/api/test/integration/lifecycle-guards.integration.test.ts`.
+- [x] ~~Console: the entity form exposes "Actions" buttons for every
+      declared transition from the current state.~~ `ActionsBar` client component above the EntityForm; each button is its own `useFormState`-bound Server Action with `router.refresh()` on success.
 
-**Dependencies:** Phase-1-cleanup TASK-10.1 (for per-action permission
-gating).
+**Dependencies:** Phase-1-cleanup TASK-10.1 (auth). ✅ done.
 
-**Scope:** ~400 lines; 1–2 sessions.
+**Scope:** ~500 lines; landed in 1 session. (Shipped.)
 
 ---
 
@@ -373,7 +372,7 @@ sessions total.
 
 | #   | Title                        | Scope | Parallel with      |
 | --- | ---------------------------- | ----- | ------------------ |
-| 15  | Lifecycle guards             | 1–2 d | 17                 |
+| 15  | Lifecycle guards ✅ **done** | 1 d   | unblocks 16        |
 | 16  | Full Workflow engine         | 3–4 d | 17, 21             |
 | 17  | L1 layer in resolver         | 2 d   | 15, 21             |
 | 18  | Package format + installer   | 2–3 d | 16                 |

@@ -5,7 +5,10 @@ import {
   EntityNameSchema,
   LifecycleSchema,
   StorageSchema,
+  allowedTransitionsFrom,
+  findLifecycleTransition,
   type EntityBody,
+  type Lifecycle,
 } from "./entity.js";
 
 describe("EntityNameSchema", () => {
@@ -51,6 +54,135 @@ describe("LifecycleSchema", () => {
     expect(() => LifecycleSchema.parse({ states: ["a", "b"], initial: "c" })).toThrow(
       /initial state .* must appear in states/,
     );
+  });
+
+  it("accepts a transitions array referencing only declared states", () => {
+    const value = {
+      states: ["draft", "active", "archived"],
+      initial: "draft",
+      transitions: [
+        { from: "draft", to: "active", action: "activate" },
+        { from: "active", to: "archived", action: "archive" },
+        { from: "active", to: "draft" }, // action-less: PATCH-driven only
+      ],
+    };
+    expect(LifecycleSchema.parse(value)).toEqual(value);
+  });
+
+  it("rejects a transition.from outside states", () => {
+    // Zod 4 errors stringify as a JSON array of issues — quotes inside
+    // the message get escaped. Matching on the non-quoted portion
+    // keeps the assertion tight without fighting the serialization.
+    expect(() =>
+      LifecycleSchema.parse({
+        states: ["draft", "active"],
+        initial: "draft",
+        transitions: [{ from: "stale", to: "active", action: "activate" }],
+      }),
+    ).toThrow(/transition\.from .*stale.* is not in states/);
+  });
+
+  it("rejects a transition.to outside states", () => {
+    expect(() =>
+      LifecycleSchema.parse({
+        states: ["draft", "active"],
+        initial: "draft",
+        transitions: [{ from: "draft", to: "void", action: "activate" }],
+      }),
+    ).toThrow(/transition\.to .*void.* is not in states/);
+  });
+
+  it("allows an action name to repeat across different `from` states", () => {
+    // `start` from `open` vs `start` from `reopened` is fine — semantically
+    // they both mean "begin work" and land in the same target state.
+    const value = {
+      states: ["open", "in_progress", "resolved", "reopened"],
+      initial: "open",
+      transitions: [
+        { from: "open", to: "in_progress", action: "start" },
+        { from: "reopened", to: "in_progress", action: "start" },
+      ],
+    };
+    expect(LifecycleSchema.parse(value)).toEqual(value);
+  });
+
+  it("rejects a duplicate (from, action) pair", () => {
+    // Two `start` actions from `a` would give one caller-visible route
+    // two possible destinations — ambiguous, must reject.
+    expect(() =>
+      LifecycleSchema.parse({
+        states: ["a", "b", "c"],
+        initial: "a",
+        transitions: [
+          { from: "a", to: "b", action: "start" },
+          { from: "a", to: "c", action: "start" },
+        ],
+      }),
+    ).toThrow(/duplicate \(from, action\).*a.*start/);
+  });
+
+  it("round-trips transitions through JSON", () => {
+    const lc: Lifecycle = {
+      states: ["draft", "active", "archived"],
+      initial: "draft",
+      transitions: [
+        { from: "draft", to: "active", action: "activate" },
+        { from: "active", to: "archived", action: "archive" },
+      ],
+    };
+    const parsed = LifecycleSchema.parse(JSON.parse(JSON.stringify(LifecycleSchema.parse(lc))));
+    expect(parsed).toEqual(lc);
+  });
+});
+
+describe("findLifecycleTransition + allowedTransitionsFrom", () => {
+  const lc: Lifecycle = {
+    states: ["draft", "active", "on_hold", "archived"],
+    initial: "draft",
+    transitions: [
+      { from: "draft", to: "active", action: "activate" },
+      { from: "active", to: "on_hold", action: "hold" },
+      { from: "on_hold", to: "active", action: "resume" },
+      { from: "active", to: "archived", action: "archive" },
+      { from: "draft", to: "draft" }, // action-less self-loop
+    ],
+  };
+
+  it("matches a transition by action + current state", () => {
+    expect(findLifecycleTransition(lc, "draft", { action: "activate" })).toEqual({
+      from: "draft",
+      to: "active",
+      action: "activate",
+    });
+  });
+
+  it("returns null for an action declared but not legal from current state", () => {
+    expect(findLifecycleTransition(lc, "archived", { action: "activate" })).toBeNull();
+  });
+
+  it("matches a transition by target state", () => {
+    expect(findLifecycleTransition(lc, "on_hold", { toState: "active" })).toEqual({
+      from: "on_hold",
+      to: "active",
+      action: "resume",
+    });
+  });
+
+  it("enumerates allowed transitions from a state", () => {
+    expect(allowedTransitionsFrom(lc, "active")).toEqual([
+      { from: "active", to: "on_hold", action: "hold" },
+      { from: "active", to: "archived", action: "archive" },
+    ]);
+  });
+
+  it("returns an empty array when the state has no outgoing transitions", () => {
+    expect(allowedTransitionsFrom(lc, "archived")).toEqual([]);
+  });
+
+  it("returns an empty array when the lifecycle has no transitions at all", () => {
+    const noTransitions: Lifecycle = { states: ["draft"], initial: "draft" };
+    expect(allowedTransitionsFrom(noTransitions, "draft")).toEqual([]);
+    expect(findLifecycleTransition(noTransitions, "draft", { action: "anything" })).toBeNull();
   });
 });
 

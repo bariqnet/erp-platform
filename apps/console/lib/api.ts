@@ -172,3 +172,21 @@ export async function deleteEntityRow(
     `/v1/${encodeURIComponent(entityId)}/${rowId}`,
   );
 }
+
+/**
+ * TASK-15 — POST /v1/:entity/:id/actions/:action. Drives a lifecycle
+ * transition declared on the entity's metadata. The API returns the
+ * updated row on success.
+ */
+export async function invokeEntityAction(
+  session: Session,
+  entityId: string,
+  rowId: string,
+  action: string,
+): Promise<EntityRow> {
+  return request<EntityRow>(
+    session,
+    "POST",
+    `/v1/${encodeURIComponent(entityId)}/${rowId}/actions/${encodeURIComponent(action)}`,
+  );
+}

@@ -46,11 +46,32 @@ export type Storage = z.infer<typeof StorageSchema>;
 
 // ── Lifecycle (embedded state-list + optional workflow reference) ──────
 
+/**
+ * A single legal transition in the state machine. `action` is optional;
+ * when present the Runtime API exposes it as
+ * `POST /v1/:entity/:id/actions/<action>`. When absent the transition
+ * is driven solely by a `status` change in a PATCH.
+ *
+ * TASK-15 introduces the transitions array; TASK-16 replaces inline
+ * transitions with a full `Workflow` metadata object (`wfl.*`) and
+ * adds `guard` + `on_entry_script` + `sla_ms`.
+ */
+export const LifecycleTransitionSchema = z
+  .object({
+    from: z.string().min(1),
+    to: z.string().min(1),
+    action: z.string().min(1).optional(),
+  })
+  .strict();
+
+export type LifecycleTransition = z.infer<typeof LifecycleTransitionSchema>;
+
 export const LifecycleSchema = z
   .object({
     states: z.array(z.string().min(1)).min(1),
     initial: z.string().min(1),
     workflow_id: ObjectIdSchema.optional(),
+    transitions: z.array(LifecycleTransitionSchema).optional(),
   })
   .strict()
   .superRefine((lc, ctx) => {
@@ -61,9 +82,78 @@ export const LifecycleSchema = z
         message: `initial state "${lc.initial}" must appear in states`,
       });
     }
+    if (lc.transitions === undefined) return;
+    const stateSet = new Set(lc.states);
+    // Action names may repeat across different `from` states — e.g.
+    // `start` can move both `open → in_progress` and
+    // `reopened → in_progress`. What MUST NOT repeat is a (from,
+    // action) pair — that would give one caller-visible route two
+    // possible destinations.
+    const seenFromAction = new Set<string>();
+    for (const [idx, t] of lc.transitions.entries()) {
+      if (!stateSet.has(t.from)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["transitions", idx, "from"],
+          message: `transition.from "${t.from}" is not in states`,
+        });
+      }
+      if (!stateSet.has(t.to)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["transitions", idx, "to"],
+          message: `transition.to "${t.to}" is not in states`,
+        });
+      }
+      if (t.action !== undefined) {
+        const key = `${t.from}::${t.action}`;
+        if (seenFromAction.has(key)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["transitions", idx, "action"],
+            message: `duplicate (from, action): "${t.from}" + "${t.action}"`,
+          });
+        }
+        seenFromAction.add(key);
+      }
+    }
   });
 
 export type Lifecycle = z.infer<typeof LifecycleSchema>;
+
+/**
+ * Pure helper: look up the legal transition from `currentState` either
+ * by an explicit `action` (route-driven) or by a target `toState`
+ * (PATCH-driven). Returns the matched transition or `null`.
+ *
+ * Lives in @erp/core because both the Runtime API service and the
+ * console's Actions-button renderer consult it. No I/O; a couple
+ * of array scans — performance is irrelevant at typical transition-
+ * table sizes (< 20 entries).
+ */
+export function findLifecycleTransition(
+  lifecycle: Lifecycle,
+  currentState: string,
+  selector: { readonly action: string } | { readonly toState: string },
+): LifecycleTransition | null {
+  const candidates = lifecycle.transitions ?? [];
+  if ("action" in selector) {
+    return candidates.find((t) => t.action === selector.action && t.from === currentState) ?? null;
+  }
+  return candidates.find((t) => t.from === currentState && t.to === selector.toState) ?? null;
+}
+
+/**
+ * Pure helper: enumerate the transitions legal from `currentState`.
+ * The console's entity form uses this to render an Actions button
+ * per allowed transition.
+ */
+export function allowedTransitionsFrom(
+  lifecycle: Lifecycle,
+  currentState: string,
+): readonly LifecycleTransition[] {
+  return (lifecycle.transitions ?? []).filter((t) => t.from === currentState);
+}
 
 // ── Index definition ───────────────────────────────────────────────────
 

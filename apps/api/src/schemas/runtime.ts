@@ -74,3 +74,25 @@ export const EntityRowListResponseSchema = z
 export type EntityRowListResponse = z.infer<typeof EntityRowListResponseSchema>;
 
 export const DeleteResponseSchema = z.object({ deleted: z.literal(true) }).strict();
+
+// ── TASK-15 · actions endpoint ───────────────────────────────────────
+// POST /v1/:entity/:id/actions/:action — transitions a row via a
+// declared lifecycle action. The action segment is a bare identifier
+// (letters, digits, underscore); the service resolves it against the
+// entity's LifecycleSchema.transitions array.
+
+export const EntityActionParamsSchema = z
+  .object({
+    entity: ObjectIdSchema,
+    id: z.string().uuid(),
+    action: z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[a-z][a-z0-9_]*$/, {
+        message: "action must match `[a-z][a-z0-9_]*`",
+      }),
+  })
+  .strict();
+
+export type EntityActionParams = z.infer<typeof EntityActionParamsSchema>;

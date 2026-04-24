@@ -5,6 +5,7 @@ import { ApiError, getEntityRow, getResolvedObject } from "../../../../lib/api";
 import { t } from "../../../../lib/i18n";
 import { readSession } from "../../../../lib/session";
 
+import { ActionsBar } from "./actions-bar";
 import { EntityForm } from "./entity-form";
 
 import type { EntityRow, ResolvedObjectResponse } from "../../../../lib/api";
@@ -66,13 +67,20 @@ export default async function EntityDetailPage(props: PageProps): Promise<JSX.El
                 <div>updated: {new Date(row.updated_at).toLocaleString(locale)}</div>
               </div>
             </div>
-            <EntityForm
+            <ActionsBar
               entityId={entityId}
               rowId={row.row_id}
-              body={row.body}
-              resolvedBody={resolved.body}
-              locale={locale}
+              actions={allowedActionsFromLifecycle(row.status, resolved.body)}
             />
+            <div className="mt-4">
+              <EntityForm
+                entityId={entityId}
+                rowId={row.row_id}
+                body={row.body}
+                resolvedBody={resolved.body}
+                locale={locale}
+              />
+            </div>
           </div>
           <details className="rounded-lg bg-white p-6 shadow-sm">
             <summary className="cursor-pointer text-sm font-medium text-slate-700">
@@ -86,4 +94,37 @@ export default async function EntityDetailPage(props: PageProps): Promise<JSX.El
       ) : null}
     </div>
   );
+}
+
+/**
+ * Extract declared transitions from the resolved entity body whose
+ * `from` equals the row's current status. Returns the minimal
+ * `{action, to}` shape the ActionsBar needs. Duplicates the shape
+ * of `@erp/core`'s `allowedTransitionsFrom` narrowly to avoid
+ * dragging Zod into the client bundle (the resolved body is already
+ * validated server-side by the Admin API).
+ */
+function allowedActionsFromLifecycle(
+  currentStatus: string | null,
+  resolvedBody: Record<string, unknown>,
+): readonly { readonly action: string; readonly to: string }[] {
+  const maybeLifecycle = resolvedBody.lifecycle;
+  if (typeof maybeLifecycle !== "object" || maybeLifecycle === null) return [];
+  const transitions = (maybeLifecycle as { transitions?: unknown }).transitions;
+  if (!Array.isArray(transitions)) return [];
+  const state = currentStatus ?? "";
+  const out: { action: string; to: string }[] = [];
+  for (const raw of transitions) {
+    if (typeof raw !== "object" || raw === null) continue;
+    const t = raw as { from?: unknown; to?: unknown; action?: unknown };
+    if (
+      typeof t.from === "string" &&
+      typeof t.to === "string" &&
+      typeof t.action === "string" &&
+      t.from === state
+    ) {
+      out.push({ action: t.action, to: t.to });
+    }
+  }
+  return out;
 }

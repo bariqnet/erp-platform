@@ -2,7 +2,13 @@
 
 import { redirect } from "next/navigation";
 
-import { patchEntityRow, deleteEntityRow, createEntityRow, ApiError } from "../lib/api";
+import {
+  patchEntityRow,
+  deleteEntityRow,
+  createEntityRow,
+  invokeEntityAction,
+  ApiError,
+} from "../lib/api";
 import {
   clearAuthCookies,
   readSession,
@@ -172,6 +178,36 @@ export async function deleteRowAction(entityId: string, rowId: string): Promise<
   if (session === null) redirect("/login");
   await deleteEntityRow(session, entityId, rowId);
   redirect(`/entities/${entityId}`);
+}
+
+export interface InvokeActionState {
+  readonly error: string | null;
+}
+
+/**
+ * TASK-15 — call POST /v1/:entity/:id/actions/:action. Server Action
+ * the Actions buttons bind to via `.bind(null, entityId, rowId,
+ * actionName)` so each button has its own Action identity for the
+ * form's progressive enhancement.
+ */
+export async function invokeActionAction(
+  entityId: string,
+  rowId: string,
+  action: string,
+  _prev: InvokeActionState,
+  _formData: FormData,
+): Promise<InvokeActionState> {
+  const session = readSession();
+  if (session === null) redirect("/login");
+  try {
+    await invokeEntityAction(session, entityId, rowId, action);
+    return { error: null };
+  } catch (err) {
+    if (err instanceof ApiError) {
+      return { error: err.detail ?? err.kind ?? `API ${err.status}` };
+    }
+    return { error: err instanceof Error ? err.message : "unknown error" };
+  }
 }
 
 export interface CreateRowState {
